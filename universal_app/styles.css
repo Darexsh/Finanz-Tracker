@@ -1,0 +1,306 @@
+:root {
+  --bg: #f2f7ff;
+  --surface: #ffffffee;
+  --text: #0f172a;
+  --muted: #475569;
+  --brand: #0f766e;
+  --brand-2: #0ea5e9;
+  --danger: #dc2626;
+  --border: #d7e2ee;
+  --radius: 18px;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Segoe UI", "Noto Sans", sans-serif;
+  color: var(--text);
+  background: linear-gradient(170deg, #f6fbff 0%, #eef5ff 100%);
+}
+
+.bg-orb {
+  position: fixed;
+  z-index: 0;
+  border-radius: 999px;
+  filter: blur(60px);
+  opacity: 0.25;
+  pointer-events: none;
+}
+.orb-a { width: 300px; height: 300px; background: #0ea5e9; top: -60px; left: -70px; }
+.orb-b { width: 280px; height: 280px; background: #14b8a6; right: -80px; top: 100px; }
+
+.app-shell {
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.hero,
+.panel,
+.tabs {
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.hero {
+  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+}
+.hero h1 { margin: 0 0 6px; font-size: clamp(1.35rem, 3vw, 2rem); }
+.hero p { margin: 0; color: var(--muted); }
+
+.profile-box { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.profile-box label { font-size: 0.9rem; color: var(--muted); }
+
+.tabs {
+  margin-top: 12px;
+  padding: 6px;
+  display: inline-flex;
+  gap: 6px;
+}
+.tab {
+  border: 0;
+  background: transparent;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab.active {
+  background: linear-gradient(120deg, var(--brand), var(--brand-2));
+  color: white;
+}
+
+.tab-panel { display: none; margin-top: 12px; }
+.tab-panel.active { display: block; }
+
+.cards {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+}
+.card p { margin: 0 0 6px; color: var(--muted); font-size: .9rem; }
+.card h4 { margin: 0; font-size: 1.2rem; }
+
+.panel-grid {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.panel { padding: 14px; margin-top: 12px; }
+.panel h3 { margin: 0 0 10px; font-size: 1rem; }
+
+.form-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+label { display: grid; gap: 6px; font-size: .88rem; color: var(--muted); }
+.full-width { grid-column: 1 / -1; }
+.actions { display: flex; gap: 8px; }
+
+input, select, .btn {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+}
+input, select { background: white; color: var(--text); }
+
+.btn { cursor: pointer; font-weight: 600; }
+.btn.primary { background: linear-gradient(120deg, var(--brand), var(--brand-2)); color: #fff; border: 0; }
+.btn.secondary { background: #e8f1fb; }
+.btn.danger { background: var(--danger); color: #fff; border: 0; }
+
+.filter-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.table-wrap { overflow: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 760px; }
+th, td { border-bottom: 1px solid var(--border); padding: 10px; text-align: left; font-size: .92rem; }
+th { color: var(--muted); font-weight: 600; }
+
+.clean-list { margin: 0; padding-left: 18px; }
+.clean-list li { margin: 4px 0; }
+
+@media (max-width: 680px) {
+  .app-shell { padding: 10px; }
+  .hero { padding: 12px; }
+  .tab { padding: 9px 10px; }
+}
+
+.report-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.report-toolbar label {
+  min-width: 120px;
+}
+
+tbody tr.selected-row {
+  background: #dcf2ff;
+}
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.dialog-box {
+  width: min(460px, calc(100vw - 24px));
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px rgba(2, 8, 23, 0.25);
+  padding: 16px;
+}
+
+.dialog-box h3 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.dialog-box p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+#dialogInput {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.chart-wrap {
+  width: 100%;
+  min-height: 280px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 8px;
+}
+
+#monthlyChart {
+  width: 100%;
+  height: 280px;
+  display: block;
+}
+
+.chart-note {
+  margin-top: 8px;
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+
+.chart-wrap {
+  position: relative;
+}
+
+.chart-tooltip {
+  position: absolute;
+  z-index: 5;
+  min-width: 168px;
+  max-width: 220px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #cfd8e3;
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.18);
+  pointer-events: none;
+  font-size: 0.83rem;
+  color: #334155;
+}
+
+.chart-tooltip strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #0f172a;
+  font-size: 0.85rem;
+}
+
+.chart-tooltip p {
+  margin: 2px 0;
+}
+
+.chart-tooltip .i {
+  color: #0f766e;
+  font-weight: 700;
+}
+
+.chart-tooltip .e {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.chart-tooltip .n {
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.bookings-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.selected-info {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.check-col {
+  width: 38px;
+  min-width: 38px;
+  text-align: center;
+}
+
+.check-col input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+#reports .panel + .cards {
+  margin-top: 16px;
+}

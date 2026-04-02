@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finanz Tracker Universal</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-a"></div>
+    <div class="bg-orb orb-b"></div>
+
+    <div class="app-shell">
+      <header class="hero">
+        <div>
+          <h1>Finanz Tracker</h1>
+          <p>Ein Codebase für Desktop und Android</p>
+        </div>
+        <div class="profile-box">
+          <label for="userSelect">Profil</label>
+          <select id="userSelect"></select>
+          <button id="addUserBtn" class="btn secondary">Neu</button>
+          <button id="renameUserBtn" class="btn secondary">Umbenennen</button>
+          <button id="deleteUserBtn" class="btn danger">Löschen</button>
+        </div>
+      </header>
+
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-tab="dashboard">Dashboard</button>
+        <button class="tab" data-tab="bookings">Buchungen</button>
+        <button class="tab" data-tab="reports">Auswertung</button>
+      </nav>
+
+      <main>
+        <section id="dashboard" class="tab-panel active">
+          <div class="cards" id="statsCards"></div>
+          <div class="panel-grid">
+            <section class="panel">
+              <h3>Top Kategorien (Monat)</h3>
+              <ul id="topCategories" class="clean-list"></ul>
+            </section>
+            <section class="panel">
+              <h3>Monatsverlauf (Einnahmen und Ausgaben)</h3>
+              <div class="chart-wrap">
+                <canvas id="monthlyChart" height="280"></canvas>
+                <div id="monthlyChartTooltip" class="chart-tooltip hidden" aria-hidden="true"></div>
+              </div>
+              <p class="chart-note">Grün = Einnahmen, Rot im Balken = Ausgaben. Hover oder Klick zeigt Details.</p>
+            </section>
+          </div>
+        </section>
+
+        <section id="bookings" class="tab-panel">
+          <section class="panel form-panel">
+            <h3>Neue Buchung</h3>
+            <form id="bookingForm" class="form-grid">
+              <label>
+                Datum (TT.MM.JJJJ)
+                <input id="monthInput" name="month" placeholder="02.04.2026" required />
+              </label>
+              <label>
+                Beschreibung
+                <input id="descriptionInput" name="description" required />
+              </label>
+              <label>
+                Kategorie
+                <select id="categoryInput" name="category"></select>
+              </label>
+              <label>
+                Betrag (€)
+                <input id="amountInput" name="amount" required />
+              </label>
+              <label>
+                Typ
+                <select id="typeInput" name="txType">
+                  <option>Ausgabe</option>
+                  <option>Einnahme</option>
+                </select>
+              </label>
+              <label>
+                Konto
+                <select id="accountInput" name="account"></select>
+              </label>
+              <label class="full-width">
+                Notiz
+                <input id="noteInput" name="note" />
+              </label>
+              <div class="full-width actions">
+                <button class="btn primary" type="submit">Speichern</button>
+                <button class="btn secondary" type="reset">Leeren</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel">
+            <h3>Filter</h3>
+            <div class="filter-row">
+              <select id="fMonth"></select>
+              <select id="fYear"></select>
+              <select id="fType">
+                <option value="Alle">Typ: Alle</option>
+                <option value="Ausgabe">Ausgabe</option>
+                <option value="Einnahme">Einnahme</option>
+              </select>
+              <select id="fCategory"></select>
+              <select id="fAccount"></select>
+              <input id="fSearch" placeholder="Suche" />
+              <button class="btn secondary" id="resetFiltersBtn">Reset</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3>Buchungen</h3>
+            <div class="bookings-toolbar">
+              <button class="btn danger" id="deleteSelectedBookingsBtn" type="button">Ausgewählte löschen</button>
+              <span id="selectedBookingsInfo" class="selected-info">0 ausgewählt</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="check-col"><input id="selectAllBookings" type="checkbox" aria-label="Alle Buchungen auswählen" /></th>
+                    <th>Datum</th>
+                    <th>Beschreibung</th>
+                    <th>Kategorie</th>
+                    <th>Typ</th>
+                    <th>Betrag</th>
+                    <th>Konto</th>
+                    <th>Notiz</th>
+                  </tr>
+                </thead>
+                <tbody id="bookingsBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section id="reports" class="tab-panel">
+          <section class="panel">
+            <h3>Jahresauswertung</h3>
+            <div class="report-toolbar">
+              <label>
+                Jahr
+                <input id="reportYearInput" value="2026" />
+              </label>
+              <button id="loadReportBtn" class="btn secondary">Auswertung laden</button>
+              <button id="exportReportBtn" class="btn primary">CSV exportieren</button>
+            </div>
+          </section>
+
+          <section class="cards" id="reportStatsCards"></section>
+
+          <section class="panel">
+            <h3>Monate</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Monat</th>
+                    <th>Einnahmen</th>
+                    <th>Ausgaben</th>
+                    <th>Saldo</th>
+                  </tr>
+                </thead>
+                <tbody id="reportBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="dialogOverlay" class="dialog-overlay hidden" aria-hidden="true">
+      <div class="dialog-box" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+        <h3 id="dialogTitle">Hinweis</h3>
+        <p id="dialogMessage"></p>
+        <input id="dialogInput" class="hidden" />
+        <div class="dialog-actions">
+          <button id="dialogCancelBtn" class="btn secondary hidden" type="button">Abbrechen</button>
+          <button id="dialogOkBtn" class="btn primary" type="button">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
