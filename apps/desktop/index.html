@@ -29,6 +29,7 @@
         <button class="tab active" data-tab="dashboard">Dashboard</button>
         <button class="tab" data-tab="bookings">Buchungen</button>
         <button class="tab" data-tab="reports">Auswertung</button>
+        <button class="tab" data-tab="synchronisierung">Synchronisierung</button>
       </nav>
 
       <main>
@@ -40,7 +41,13 @@
               <ul id="topCategories" class="clean-list"></ul>
             </section>
             <section class="panel">
-              <h3>Monatsverlauf (Einnahmen und Ausgaben)</h3>
+              <div class="panel-head">
+                <h3>Monatsverlauf (Einnahmen und Ausgaben)</h3>
+                <label class="mini-field">
+                  Jahr
+                  <select id="dashboardYearSelect"></select>
+                </label>
+              </div>
               <div class="chart-wrap">
                 <canvas id="monthlyChart" height="280"></canvas>
                 <div id="monthlyChartTooltip" class="chart-tooltip hidden" aria-hidden="true"></div>
@@ -66,6 +73,12 @@
                 Kategorie
                 <select id="categoryInput" name="category"></select>
               </label>
+              <div class="full-width category-tools">
+                <span>Kategorien verwalten</span>
+                <button id="addCategoryBtn" class="btn secondary" type="button">Neu</button>
+                <button id="renameCategoryBtn" class="btn secondary" type="button">Umbenennen</button>
+                <button id="deleteCategoryBtn" class="btn danger" type="button">Löschen</button>
+              </div>
               <label>
                 Betrag (€)
                 <input id="amountInput" name="amount" required />
@@ -134,7 +147,6 @@
             </div>
           </section>
         </section>
-
         <section id="reports" class="tab-panel">
           <section class="panel">
             <h3>Jahresauswertung</h3>
@@ -167,6 +179,33 @@
             </div>
           </section>
         </section>
+
+        <section id="synchronisierung" class="tab-panel">
+          <section class="panel">
+            <h3>Synchronisierung</h3>
+            <p class="chart-note">Hier werden Ordner-Auswahl, Sync-Status und manuelle Sync-Aktionen zentral verwaltet.</p>
+            <p class="chart-note">Android-Hinweis: Auf dem Smartphone eine beliebige App für Ordner-Synchronisierung einrichten (z. B. FolderSync, Syncthing oder andere), denselben Cloud-/Netzwerk-Ordner mit einem lokalen Handy-Ordner koppeln und Two-way-Sync aktivieren. Google Drive ist nur eine mögliche Option, nicht verpflichtend.</p>
+          </section>
+
+          <section class="panel">
+            <h3>Sync-Ordner</h3>
+            <div class="cloud-grid">
+              <label class="full-width">
+                Ordnerpfad
+                <input id="syncFolderInput" placeholder="D:\\FinanzTracker\\Sync" />
+              </label>
+              <div class="full-width actions">
+                <button id="browseSyncFolderBtn" class="btn secondary" type="button">Durchsuchen</button>
+                <button id="syncBackupNowBtn" class="btn primary" type="button">Jetzt sichern</button>
+                <button id="syncRestoreBtn" class="btn secondary" type="button">Neueste Sicherung laden</button>
+              </div>
+              <p id="cloudStatus" class="cloud-status">Sync: nicht konfiguriert</p>
+              <p id="syncLastWrite" class="cloud-status">Letzte Sync-Sicherung: -</p>
+              <p id="syncLastRestore" class="cloud-status">Letzte Wiederherstellung: -</p>
+            </div>
+          </section>
+        </section>
+
       </main>
     </div>
 

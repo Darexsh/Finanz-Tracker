@@ -2,19 +2,26 @@
 
 Modernisierte Finanz-Desktop-App mit Tauri (Web-UI + native Desktop-Hülle).
 
+Diese README ist die zentrale und einzige Projektdokumentation.
+
 ## Projektstatus
 
-- `universal_app/`: aktuelle Desktop-Basis (Tauri)
-- `python_gui_old/`: alte/refaktorierte Python-Tkinter-Version (Legacy)
+- `apps/desktop/`: aktuelle Desktop-Basis (Tauri)
+- `apps/mobile/`: Platzhalter für die spätere Android-App
+- `shared/`: gemeinsame Module für Desktop + Android (Vorbereitung)
+- `docs/`: zusätzliche Projekt-Dokumente (optional)
 
 ## Projektstruktur
 
 ```text
 Finanz Tracker/
-├─ universal_app/          # Neue Desktop-App (Tauri)
-├─ python_gui_old/         # Alte Python-GUI (Legacy)
-├─ finanzen.db             # Lokale Datenbank (Bestandsdatei)
-├─ settings.json           # Einstellungen (Bestandsdatei)
+├─ apps/
+│  ├─ desktop/             # Desktop-App (Tauri)
+│  └─ mobile/              # Android-App (Vorbereitung)
+├─ shared/
+│  ├─ domain/              # gemeinsame Fachlogik (Vorbereitung)
+│  └─ utils/               # gemeinsame Hilfsfunktionen (Vorbereitung)
+├─ docs/                   # zusätzliche Doku (optional)
 └─ Ausgaben im Jahr.xlsx   # Ursprungs-Excel
 ```
 
@@ -31,18 +38,18 @@ Finanz Tracker/
 ### Buchungen
 
 - Buchungen mit vollem Datum im Format `TT.MM.JJJJ`
-- Auto-Kategorisierung anhand Beschreibung (z. B. Keyword-Mapping), manuell übersteuerbar
+- Auto-Kategorisierung anhand Beschreibung (Keyword + lernfähige Regeln aus bisherigen Buchungen), manuell übersteuerbar
+- Benutzerdefinierte Kategorien direkt in der GUI anlegen, umbenennen, löschen
 - Buchung per Doppelklick in Formular laden, ändern und mit "Speichern" sichern (automatisch Neu/Update)
-- Mehrfachauswahl und Sammellöschung von Buchungen (Einzellöschung über Formular entfernt)
+- Mehrfachauswahl und Sammellöschung von Buchungen
 - Sortierung: neuere Daten oben; bei gleichem Datum zuletzt angelegte Buchung zuerst
 
 ### Filter und Auswertung
 
-- Filter nach Monat, Jahr, Typ, Kategorie, Konto und Textsuche
+- Filter nach Monat, Jahr, Typ, Kategorie (inkl. benutzerdefinierter Kategorien), Konto und Textsuche
 - Jahresauswertung mit Monatszeilen (Einnahmen, Ausgaben, Saldo)
 - CSV-Export der Jahresauswertung
 - CSV-Ziel: primär Download-Ordner, Fallback Dokumente
-- Auswertungsbereich im Report-Tab visuell entzerrt (mehr Abstand zu KPI-Karten)
 
 ### Dashboard
 
@@ -64,6 +71,58 @@ Finanz Tracker/
 - Daily-Backup als JSON im App-Datenordner unter `backups/`
 - Dateimuster: `state-backup-YYYY-MM-DD.json`
 - Automatisches Aufräumen: es bleiben die neuesten 60 Backups
+
+## Cloud-/Sync-Workflow (final)
+
+### Entscheidung
+
+- Kein OAuth in der App.
+- Kein Google-Login innerhalb von Finanz Tracker.
+- Sync läuft über externe Sync-Tools:
+  - Windows: Google Drive für Desktop
+  - Android: FolderSync
+
+### Warum dieser Ansatz
+
+- Kein OAuth-Review/Verifizierung für die App nötig
+- Kein Token-Handling innerhalb der App
+- Einfachere öffentliche Veröffentlichung (Open Source/GitHub)
+- Gleiches Datenprinzip für Desktop und spätere Android-App
+
+### Zielbild
+
+- App arbeitet nur mit einem lokalen Sync-Ordner.
+- Dieser Ordner wird von Google Drive Desktop in die Cloud synchronisiert.
+- Android synchronisiert denselben Drive-Ordner per FolderSync auf lokalen Gerätespeicher.
+- Die spätere Android-App nutzt denselben lokalen Ordner-Ansatz.
+
+### Konkreter Setup-Ablauf
+
+1. In Google Drive einen Ordner erstellen, z. B. `FinanzTrackerSync`.
+2. Auf Windows `Google Drive für Desktop` installieren und anmelden.
+3. Den Drive-Ordner lokal verfügbar machen (Spiegelung/Offline verfügbar).
+4. In der Desktop-App im Tab `Synchronisierung` den lokalen Sync-Ordnerpfad auswählen (wird automatisch gespeichert).
+5. Die App lädt beim Start automatisch aus dem Sync-Ordner (falls Datei vorhanden).
+6. Änderungen werden automatisch in die Sync-Datei zurückgeschrieben (Overwrite).
+7. Auf Android FolderSync einrichten:
+   - Konto: Google Drive
+   - Remote-Ordner: `FinanzTrackerSync`
+   - Lokaler Ordner: z. B. `Android/data/.../FinanzTrackerSync`
+   - Sync-Richtung: Two-way
+8. Optional: in FolderSync Zeitplan für regelmäßigen Sync aktivieren.
+
+### App-Verhalten (Synchronisierung)
+
+- Eigener Tab: `Synchronisierung`
+- Ordnerauswahl per `Durchsuchen` (kein manuelles Pfad-Raten nötig)
+- Live-Anzeige: Sync-Status, letzte Sync-Sicherung, letzte Wiederherstellung
+- Sync-Datei: `finanz-tracker-sync-latest.json`
+
+### Konflikt-Hinweis
+
+- Bei gleichzeitigen Änderungen auf zwei Geräten können Konflikte entstehen.
+- Aktuell gilt praktisch: `finanz-tracker-sync-latest.json` ist die führende Datei (wird überschrieben).
+- Empfehlung: vor Gerätewechsel kurz manuell synchronisieren.
 
 ## Voraussetzungen
 
@@ -89,7 +148,7 @@ Finanz Tracker/
 ### B) Projektabhängigkeiten installieren
 
 ```bash
-cd "Finanz Tracker/universal_app"
+cd "Finanz Tracker/apps/desktop"
 npm install
 ```
 
@@ -107,7 +166,7 @@ npm run prepare:dist
 npx tauri dev
 ```
 
-Alternativ (wenn CLI lokal korrekt aufgelöst wird):
+Alternativ:
 
 ```bash
 npm run tauri:dev
@@ -121,28 +180,14 @@ npm run tauri:build
 
 Output liegt danach in:
 
-- `universal_app/src-tauri/target/release/bundle/`
+- `apps/desktop/src-tauri/target/release/bundle/`
 - Linux: `.AppImage`, `.deb`, `.rpm`
 - Windows: `.msi` (oder je nach Bundle-Config weitere Installer)
 
-## Alte Python-GUI (Legacy)
-
-Die bisherigen Python-Dateien liegen jetzt in:
-
-- `python_gui_old/`
-
-Start (optional, Legacy):
-
-```bash
-cd "Finanz Tracker/python_gui_old"
-python finance_tracker.py
-```
-
 ## Hinweise
 
-- Keine Cloud-Synchronisierung implementiert (lokale Nutzung)
 - Android folgt als nächster Schritt nach Desktop-Stabilisierung
-- Für größere UI-Änderungen bitte zuerst `tauri dev` testen, dann erst `tauri build`
+- Für größere UI-Änderungen: erst `tauri dev` testen, dann `tauri build`
 
 ## Roadmap
 

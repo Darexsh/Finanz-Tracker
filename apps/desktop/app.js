@@ -2,12 +2,15 @@ const STORAGE_KEY = "finanz-universal-v1";
 const LEGACY_MIGRATED_KEY = "finanz-universal-migrated-to-sqlite-v1";
 const RECOVERY_FALLBACK_KEY = "finanz-universal-recovery-fallback-v1";
 const DAILY_BACKUP_KEY = "finanz-universal-daily-backup-v1";
+const SYNC_LAST_WRITE_KEY = "finanz-universal-sync-last-write-v1";
+const SYNC_LAST_RESTORE_KEY = "finanz-universal-sync-last-restore-v1";
 
 const CATEGORIES = [
   "Miete", "Nebenkosten", "Strom/Gas", "Internet/Handy", "Lebensmittel", "Drogerie",
-  "Haushalt", "Mobilität", "Auto", "ÖPNV", "Versicherung", "Gesundheit", "Shopping",
-  "Freizeit", "Gastronomie", "Reisen", "Bildung", "Kinder", "Haustiere", "Abo",
-  "Steuern/Gebühren", "Gehalt", "Nebenverdienst", "Sonstiges"
+  "Haushalt", "Mobilität", "Auto", "Parken", "ÖPNV", "Versicherung", "Abgaben/Beiträge",
+  "Gesundheit", "Shopping", "Kleidung", "Elektronik", "Freizeit", "Gaming/Medien",
+  "Gastronomie", "Reisen", "Bildung", "Geschenke", "Kinder", "Haustiere", "Abo",
+  "Steuern/Gebühren", "Gehalt", "Nebenverdienst", "Transfer", "Sonstiges"
 ];
 
 const ACCOUNTS = ["Girokonto", "Kreditkarte", "Paypal", "Bargeld", "Extra Konto", "Sonstiges"];
@@ -18,13 +21,112 @@ const MONTH_NAMES = [
 ];
 
 const KEYWORD_MAP = [
-  ["teelicht", "Shopping"], ["kerze", "Shopping"], ["temu", "Shopping"], ["amazon", "Shopping"],
-  ["dm", "Drogerie"], ["rossmann", "Drogerie"], ["lidl", "Lebensmittel"], ["aldi", "Lebensmittel"],
-  ["rewe", "Lebensmittel"], ["tank", "Auto"], ["benzin", "Auto"], ["bahn", "ÖPNV"],
-  ["versicherung", "Versicherung"], ["arzt", "Gesundheit"], ["apotheke", "Gesundheit"],
-  ["netflix", "Abo"], ["spotify", "Abo"], ["chatgpt", "Abo"], ["miete", "Miete"],
-  ["gehalt", "Gehalt"], ["urlaub", "Reisen"]
+  ["miete", "Miete"], ["nebenkosten", "Nebenkosten"], ["strom", "Strom/Gas"], ["gas", "Strom/Gas"],
+  ["simon", "Internet/Handy"], ["simon mobile", "Internet/Handy"], ["internet", "Internet/Handy"], ["handy", "Internet/Handy"],
+  ["lidl", "Lebensmittel"], ["aldi", "Lebensmittel"], ["rewe", "Lebensmittel"], ["edeka", "Lebensmittel"], ["einkauf", "Lebensmittel"],
+  ["dm", "Drogerie"], ["rossmann", "Drogerie"], ["nagellack", "Drogerie"], ["entfetter", "Drogerie"],
+  ["staubsauger", "Haushalt"], ["schrauben", "Haushalt"], ["regenschirm", "Haushalt"], ["backfolie", "Haushalt"], ["backofenlampe", "Haushalt"], ["batterien", "Haushalt"],
+  ["bahn", "ÖPNV"], ["deutschlandticket", "ÖPNV"],
+  ["tanken", "Auto"], ["tank", "Auto"], ["benzin", "Auto"], ["aral", "Auto"],
+  ["parken", "Parken"],
+  ["versicherung", "Versicherung"], ["rechtsschutz", "Versicherung"], ["adac", "Versicherung"], ["zahnzusatz", "Versicherung"], ["auslandskrankenversicherung", "Versicherung"],
+  ["gez", "Abgaben/Beiträge"], ["rundfunk", "Abgaben/Beiträge"],
+  ["arzt", "Gesundheit"], ["apotheke", "Gesundheit"], ["zahn", "Gesundheit"],
+  ["temu", "Shopping"], ["shein", "Shopping"], ["aliexpress", "Shopping"], ["banggood", "Shopping"], ["tedi", "Shopping"], ["action", "Shopping"], ["amazon", "Shopping"],
+  ["socken", "Kleidung"], ["schuhe", "Kleidung"], ["jacke", "Kleidung"], ["winterjacke", "Kleidung"],
+  ["pc", "Elektronik"], ["cpu", "Elektronik"], ["kühler", "Elektronik"], ["splitter", "Elektronik"], ["sata", "Elektronik"], ["tapo", "Elektronik"], ["etikettierer", "Elektronik"],
+  ["solo leveling", "Gaming/Medien"], ["geisterakten", "Gaming/Medien"],
+  ["too good to go", "Gastronomie"], ["burger king", "Gastronomie"], ["mcdonald", "Gastronomie"], ["essen", "Gastronomie"], ["schaschlik", "Gastronomie"], ["holy", "Gastronomie"],
+  ["urlaub", "Reisen"],
+  ["geschenk", "Geschenke"],
+  ["netflix", "Abo"], ["spotify", "Abo"], ["chatgpt", "Abo"], ["chatgpt plus", "Abo"],
+  ["gehalt", "Gehalt"], ["arbeit", "Gehalt"],
+  ["extra konto", "Transfer"], ["paypal", "Transfer"]
 ];
+
+const CATEGORY_ALIAS_MAP = new Map([
+  ["mobilitaet", "Mobilität"],
+  ["mobilität", "Mobilität"],
+  ["gebuhren", "Steuern/Gebühren"],
+  ["gebühren", "Steuern/Gebühren"],
+  ["steuern", "Steuern/Gebühren"],
+  ["gebuhr", "Steuern/Gebühren"],
+  ["beitrage", "Abgaben/Beiträge"],
+  ["beiträge", "Abgaben/Beiträge"],
+  ["abgaben", "Abgaben/Beiträge"],
+  ["verpflegung", "Gastronomie"],
+  ["restaurant", "Gastronomie"],
+  ["food", "Gastronomie"],
+  ["markt", "Lebensmittel"],
+  ["supermarkt", "Lebensmittel"],
+  ["technik", "Elektronik"],
+  ["hardware", "Elektronik"],
+  ["kleider", "Kleidung"],
+  ["mode", "Kleidung"],
+  ["sonstige", "Sonstiges"]
+]);
+
+function sanitizeCustomCategories(list) {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set();
+  const result = [];
+
+  list.forEach(item => {
+    const name = String(item || "").trim();
+    if (!name) return;
+    if (CATEGORIES.includes(name)) return;
+    const key = name.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    result.push(name);
+  });
+
+  result.sort((a, b) => a.localeCompare(b, "de"));
+  return result;
+}
+
+function allCategories(customCategories = []) {
+  const merged = [...CATEGORIES, ...sanitizeCustomCategories(customCategories)];
+  const seen = new Set();
+  return merged.filter(item => {
+    const key = item.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function normalizeCategory(value, customCategories = []) {
+  const raw = String(value || "").trim();
+  if (!raw) return "Sonstiges";
+
+  const categories = allCategories(customCategories);
+  if (categories.includes(raw)) return raw;
+  const caseMatch = categories.find(item => item.toLowerCase() === raw.toLowerCase());
+  if (caseMatch) return caseMatch;
+
+  const simple = raw
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-zA-Z0-9/ ]+/g, "")
+    .toLowerCase()
+    .trim();
+
+  if (CATEGORY_ALIAS_MAP.has(simple)) {
+    return CATEGORY_ALIAS_MAP.get(simple) || "Sonstiges";
+  }
+
+  const mappedByKeyword = KEYWORD_MAP.find(([keyword]) => simple.includes(keyword));
+  if (mappedByKeyword) return mappedByKeyword[1];
+
+  return "Sonstiges";
+}
+
+function normalizeBookingCategory(entry, customCategories = []) {
+  if (!entry || typeof entry !== "object") return entry;
+  return { ...entry, category: normalizeCategory(entry.category, customCategories) };
+}
+
 
 const state = createDefaultState();
 let stateReady = false;
@@ -33,6 +135,8 @@ let categoryManuallyOverridden = false;
 let lastAutoCategory = null;
 let selectedBookingId = null;
 let recoveryNotice = null;
+let syncConfigured = false;
+let syncAutoBackupTimer = null;
 const selectedBookingIds = new Set();
 const monthlyChartState = { bars: [], rows: [], year: null, hoverIndex: -1, pinnedIndex: null };
 
@@ -45,11 +149,15 @@ const el = {
   topCategories: document.getElementById("topCategories"),
   monthlyChart: document.getElementById("monthlyChart"),
   monthlyChartTooltip: document.getElementById("monthlyChartTooltip"),
+  dashboardYearSelect: document.getElementById("dashboardYearSelect"),
 
   bookingForm: document.getElementById("bookingForm"),
   monthInput: document.getElementById("monthInput"),
   descriptionInput: document.getElementById("descriptionInput"),
   categoryInput: document.getElementById("categoryInput"),
+  addCategoryBtn: document.getElementById("addCategoryBtn"),
+  renameCategoryBtn: document.getElementById("renameCategoryBtn"),
+  deleteCategoryBtn: document.getElementById("deleteCategoryBtn"),
   amountInput: document.getElementById("amountInput"),
   typeInput: document.getElementById("typeInput"),
   accountInput: document.getElementById("accountInput"),
@@ -74,6 +182,14 @@ const el = {
   reportStatsCards: document.getElementById("reportStatsCards"),
   reportBody: document.getElementById("reportBody"),
 
+  syncFolderInput: document.getElementById("syncFolderInput"),
+  browseSyncFolderBtn: document.getElementById("browseSyncFolderBtn"),
+  syncBackupNowBtn: document.getElementById("syncBackupNowBtn"),
+  syncRestoreBtn: document.getElementById("syncRestoreBtn"),
+  cloudStatus: document.getElementById("cloudStatus"),
+  syncLastWrite: document.getElementById("syncLastWrite"),
+  syncLastRestore: document.getElementById("syncLastRestore"),
+
   dialogOverlay: document.getElementById("dialogOverlay"),
   dialogTitle: document.getElementById("dialogTitle"),
   dialogMessage: document.getElementById("dialogMessage"),
@@ -97,6 +213,9 @@ async function init() {
   render();
   stateReady = true;
   await flushRecoveryNotice();
+  updateSyncMetaDisplay();
+  await refreshSyncStatus();
+  await tryAutoRestoreFromSync();
 }
 
 function defaultUser() {
@@ -105,19 +224,22 @@ function defaultUser() {
 
 function createDefaultState() {
   const user = defaultUser();
-  return { users: [user], activeUserId: user.id, bookings: [] };
+  return { users: [user], activeUserId: user.id, bookings: [], customCategories: [] };
 }
 
 function sanitizeLoadedState(loaded) {
   if (!loaded || typeof loaded !== "object") return createDefaultState();
 
   const users = Array.isArray(loaded.users) ? loaded.users.filter(u => u && u.id && u.name) : [];
-  const bookings = Array.isArray(loaded.bookings) ? loaded.bookings : [];
+  const customCategories = sanitizeCustomCategories(loaded.customCategories);
+  const bookings = Array.isArray(loaded.bookings)
+    ? loaded.bookings.filter(b => b && typeof b === "object").map(entry => normalizeBookingCategory(entry, customCategories))
+    : [];
 
   if (users.length === 0) return createDefaultState();
 
   const activeUserId = users.some(u => u.id === loaded.activeUserId) ? loaded.activeUserId : users[0].id;
-  return { users, activeUserId, bookings };
+  return { users, activeUserId, bookings, customCategories };
 }
 
 async function hydrateStateFromStorage() {
@@ -189,6 +311,7 @@ async function persistState() {
         localStorage.removeItem(RECOVERY_FALLBACK_KEY);
       } catch (_) {}
       ensureDailyBackup(payload).catch(err => console.warn("Daily-Backup fehlgeschlagen", err));
+      scheduleSyncAutoBackup(payload);
       return "tauri";
     }
   } catch (err) {
@@ -207,6 +330,7 @@ async function persistState() {
   localStorage.setItem(STORAGE_KEY, payload);
   localStorage.setItem(RECOVERY_FALLBACK_KEY, String(Date.now()));
   ensureDailyBackup(payload).catch(err => console.warn("Daily-Backup fehlgeschlagen", err));
+  scheduleSyncAutoBackup(payload);
   return "local";
 }
 
@@ -306,12 +430,11 @@ function setDefaultReportYear() {
 }
 
 function initSelectOptions() {
-  fillSelect(el.categoryInput, CATEGORIES);
+  refreshCategoryOptions(false);
   fillSelect(el.accountInput, ACCOUNTS);
 
   fillSelect(el.fMonth, ["Monat: Alle", ...Array.from({ length: 12 }, (_, i) => `${String(i + 1).padStart(2, "0")}`)], true);
   fillSelect(el.fYear, ["Jahr: Alle", String(new Date().getFullYear())], true);
-  fillSelect(el.fCategory, ["Kategorie: Alle", ...CATEGORIES], true);
   fillSelect(el.fAccount, ["Konto: Alle", ...ACCOUNTS], true);
 }
 
@@ -328,6 +451,28 @@ function fillSelect(select, values, withAllPrefix = false) {
     }
     select.appendChild(option);
   });
+}
+
+function isBuiltInCategory(name) {
+  return CATEGORIES.includes(String(name || ""));
+}
+
+function refreshCategoryOptions(keepSelection = true) {
+  const categories = allCategories(state.customCategories);
+  const previousInput = keepSelection ? el.categoryInput.value : "";
+  const previousFilter = keepSelection ? el.fCategory.value : "Alle";
+
+  fillSelect(el.categoryInput, categories);
+  fillSelect(el.fCategory, ["Kategorie: Alle", ...categories], true);
+
+  const selectedInput = categories.includes(previousInput) ? previousInput : "Sonstiges";
+  el.categoryInput.value = selectedInput;
+
+  if (previousFilter === "Alle") {
+    el.fCategory.value = "Alle";
+  } else {
+    el.fCategory.value = categories.includes(previousFilter) ? previousFilter : "Alle";
+  }
 }
 
 function bindTabs() {
@@ -431,6 +576,100 @@ function bindEvents() {
     if (el.categoryInput.value !== lastAutoCategory) categoryManuallyOverridden = true;
   });
 
+  el.addCategoryBtn.addEventListener("click", async () => {
+    const name = await askText("Name der neuen Kategorie:", "Kategorie anlegen");
+    if (name === null) return;
+
+    const trimmed = name.trim();
+    if (!trimmed) {
+      await showInfo("Bitte einen Kategorienamen eingeben.");
+      return;
+    }
+
+    const exists = allCategories(state.customCategories).some(c => c.toLowerCase() === trimmed.toLowerCase());
+    if (exists) {
+      await showInfo("Diese Kategorie existiert bereits.");
+      return;
+    }
+
+    state.customCategories = sanitizeCustomCategories([...(state.customCategories || []), trimmed]);
+    refreshCategoryOptions(true);
+    el.categoryInput.value = trimmed;
+    saveState();
+    render();
+  });
+
+  el.renameCategoryBtn.addEventListener("click", async () => {
+    const selected = String(el.categoryInput.value || "").trim();
+    if (!selected) return;
+
+    if (isBuiltInCategory(selected)) {
+      await showInfo("Standard-Kategorien können nicht umbenannt werden.");
+      return;
+    }
+
+    const nextName = await askText("Neuer Kategoriename:", "Kategorie umbenennen", selected);
+    if (nextName === null) return;
+
+    const trimmed = nextName.trim();
+    if (!trimmed) {
+      await showInfo("Bitte einen Kategorienamen eingeben.");
+      return;
+    }
+
+    const duplicate = allCategories(state.customCategories).some(c => c.toLowerCase() === trimmed.toLowerCase() && c.toLowerCase() !== selected.toLowerCase());
+    if (duplicate) {
+      await showInfo("Diese Kategorie existiert bereits.");
+      return;
+    }
+
+    state.customCategories = sanitizeCustomCategories((state.customCategories || []).map(c => c === selected ? trimmed : c));
+    state.bookings = state.bookings.map(entry => entry.category === selected
+      ? { ...entry, category: normalizeCategory(trimmed, state.customCategories) }
+      : entry);
+
+    if (selectedBookingId) {
+      const selectedEntry = state.bookings.find(b => b.id === selectedBookingId && b.userId === activeUser().id);
+      if (selectedEntry) loadEntryIntoForm(selectedEntry);
+    }
+
+    refreshCategoryOptions(true);
+    el.categoryInput.value = normalizeCategory(trimmed, state.customCategories);
+    saveState();
+    render();
+  });
+
+  el.deleteCategoryBtn.addEventListener("click", async () => {
+    const selected = String(el.categoryInput.value || "").trim();
+    if (!selected) return;
+
+    if (isBuiltInCategory(selected)) {
+      await showInfo("Standard-Kategorien können nicht gelöscht werden.");
+      return;
+    }
+
+    const usageCount = state.bookings.filter(entry => entry.category === selected).length;
+    const msg = usageCount > 0
+      ? "Kategorie '" + selected + "' löschen?\n" + usageCount + " Buchung(en) werden auf 'Sonstiges' gesetzt."
+      : "Kategorie '" + selected + "' löschen?";
+    const ok = await askConfirm(msg, "Kategorie löschen", true);
+    if (!ok) return;
+
+    state.customCategories = sanitizeCustomCategories((state.customCategories || []).filter(c => c !== selected));
+    state.bookings = state.bookings.map(entry => entry.category === selected
+      ? { ...entry, category: "Sonstiges" }
+      : entry);
+
+    if (selectedBookingId) {
+      const selectedEntry = state.bookings.find(b => b.id === selectedBookingId && b.userId === activeUser().id);
+      if (selectedEntry) loadEntryIntoForm(selectedEntry);
+    }
+
+    refreshCategoryOptions(true);
+    saveState();
+    render();
+  });
+
   el.bookingForm.addEventListener("submit", async e => {
     e.preventDefault();
     const payload = await validateBookingForm();
@@ -509,6 +748,104 @@ function bindEvents() {
     renderBookings();
   });
 
+  if (el.dashboardYearSelect) {
+    el.dashboardYearSelect.addEventListener("change", () => {
+      renderDashboard();
+    });
+  }
+
+  async function autoSaveSyncFolderPath(folderPath, showErrorDialog = true) {
+    if (!hasTauriRuntime()) return false;
+
+    const trimmed = String(folderPath || "").trim();
+    if (!trimmed) return false;
+
+    try {
+      await tryInvokeTauriCommand("sync_set_folder", { folderPath: trimmed, folder_path: trimmed });
+      await refreshSyncStatus();
+      return true;
+    } catch (err) {
+      if (showErrorDialog) {
+        await showInfo("Ordner konnte nicht gespeichert werden:\n" + String(err), "Sync");
+      }
+      return false;
+    }
+  }
+
+  el.browseSyncFolderBtn.addEventListener("click", async () => {
+    if (!hasTauriRuntime()) {
+      await showInfo("Ordner-Auswahl ist nur in der Desktop-App verfügbar.", "Sync");
+      return;
+    }
+
+    try {
+      const selected = await tryInvokeTauriCommand("sync_pick_folder", {});
+      if (!selected || typeof selected !== "string") return;
+      el.syncFolderInput.value = selected;
+      await autoSaveSyncFolderPath(selected, true);
+    } catch (err) {
+      await showInfo("Ordnerauswahl fehlgeschlagen:\n" + String(err), "Sync");
+    }
+  });
+
+  el.syncFolderInput.addEventListener("change", async () => {
+    const folderPath = (el.syncFolderInput?.value || "").trim();
+    if (!folderPath) return;
+    await autoSaveSyncFolderPath(folderPath, true);
+  });
+
+
+  el.syncBackupNowBtn.addEventListener("click", async () => {
+    if (!hasTauriRuntime()) {
+      await showInfo("Sync-Ordner ist nur in der Desktop-App verfügbar.", "Sync");
+      return;
+    }
+
+    try {
+      const writtenPath = await tryInvokeTauriCommand("sync_write_backup", { payload: JSON.stringify(state) });
+      markSyncWriteSuccess();
+      await refreshSyncStatus();
+      await showInfo("Sicherung wurde in den Sync-Ordner geschrieben:\n" + writtenPath, "Sync");
+    } catch (err) {
+      await showInfo("Sync-Sicherung fehlgeschlagen:\n" + String(err), "Sync");
+    }
+  });
+
+  el.syncRestoreBtn.addEventListener("click", async () => {
+    if (!hasTauriRuntime()) {
+      await showInfo("Sync-Ordner ist nur in der Desktop-App verfügbar.", "Sync");
+      return;
+    }
+
+    const ok = await askConfirm(
+      "Neueste Sicherung aus dem Sync-Ordner laden?\nLokale Daten werden dadurch überschrieben.",
+      "Sync-Wiederherstellung",
+      false
+    );
+    if (!ok) return;
+
+    try {
+      const raw = await tryInvokeTauriCommand("sync_restore_latest", {});
+      if (!raw || typeof raw !== "string") {
+        await showInfo("Keine Sicherung gefunden.", "Sync");
+        return;
+      }
+
+      const parsed = JSON.parse(raw);
+      Object.assign(state, sanitizeLoadedState(parsed));
+      selectedBookingId = null;
+      selectedBookingIds.clear();
+      clearForm(true);
+      render();
+      markSyncRestoreSuccess();
+      saveState();
+
+      await showInfo("Neueste Sync-Sicherung wurde geladen.", "Sync");
+    } catch (err) {
+      await showInfo("Wiederherstellung fehlgeschlagen:\n" + String(err), "Sync");
+    }
+  });
+
   el.loadReportBtn.addEventListener("click", () => renderReport());
   setupMonthlyChartInteractions();
   window.addEventListener("resize", () => {
@@ -576,10 +913,93 @@ function monthSortKey(dateStr) {
   return p.yyyy * 10000 + p.mm * 100 + p.dd;
 }
 
+const LEARNED_CATEGORY_STOPWORDS = new Set([
+  "der", "die", "das", "den", "dem", "ein", "eine", "einer", "einem", "und", "oder",
+  "mit", "ohne", "von", "für", "fuer", "auf", "im", "in", "am", "an", "zu", "zum",
+  "zur", "bei", "aus", "ist", "war", "ich", "wir", "ihr", "sie", "er", "es"
+]);
+
+function normalizeLearningText(value) {
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-zA-Z0-9 ]+/g, " ")
+    .toLowerCase()
+    .trim();
+}
+
+function tokenizeForCategoryLearning(value) {
+  const text = normalizeLearningText(value);
+  if (!text) return [];
+
+  const raw = text.split(/\s+/g).filter(Boolean);
+  const unique = new Set();
+
+  raw.forEach(token => {
+    if (token.length < 3) return;
+    if (LEARNED_CATEGORY_STOPWORDS.has(token)) return;
+    unique.add(token);
+  });
+
+  return Array.from(unique);
+}
+
+function buildLearnedCategoryModel() {
+  const perToken = new Map();
+  const totalPerCategory = new Map();
+
+  userBookings().forEach(entry => {
+    const category = normalizeCategory(entry.category, state.customCategories);
+    const tokens = tokenizeForCategoryLearning(entry.description);
+    if (!category || tokens.length === 0) return;
+
+    totalPerCategory.set(category, (totalPerCategory.get(category) || 0) + 1);
+
+    tokens.forEach(token => {
+      if (!perToken.has(token)) perToken.set(token, new Map());
+      const catMap = perToken.get(token);
+      catMap.set(category, (catMap.get(category) || 0) + 1);
+    });
+  });
+
+  return { perToken, totalPerCategory };
+}
+
+function suggestCategoryFromHistory(description) {
+  const tokens = tokenizeForCategoryLearning(description);
+  if (tokens.length === 0) return null;
+
+  const { perToken, totalPerCategory } = buildLearnedCategoryModel();
+  const scoreByCategory = new Map();
+
+  tokens.forEach(token => {
+    const catMap = perToken.get(token);
+    if (!catMap) return;
+    catMap.forEach((score, category) => {
+      scoreByCategory.set(category, (scoreByCategory.get(category) || 0) + score);
+    });
+  });
+
+  if (scoreByCategory.size === 0) return null;
+
+  const ranked = Array.from(scoreByCategory.entries()).sort((a, b) => {
+    const byScore = b[1] - a[1];
+    if (byScore !== 0) return byScore;
+    const byTotal = (totalPerCategory.get(b[0]) || 0) - (totalPerCategory.get(a[0]) || 0);
+    if (byTotal !== 0) return byTotal;
+    return a[0].localeCompare(b[0], "de");
+  });
+
+  return ranked[0]?.[0] || null;
+}
+
 function suggestCategory(description) {
-  const text = description.toLowerCase();
+  const learned = suggestCategoryFromHistory(description);
+  if (learned) return normalizeCategory(learned, state.customCategories);
+
+  const text = normalizeLearningText(description);
   const hit = KEYWORD_MAP.find(([k]) => text.includes(k));
-  return hit ? hit[1] : null;
+  return hit ? normalizeCategory(hit[1], state.customCategories) : null;
 }
 
 async function validateBookingForm() {
@@ -604,7 +1024,7 @@ async function validateBookingForm() {
   return {
     month,
     description,
-    category: el.categoryInput.value || "Sonstiges",
+    category: normalizeCategory(el.categoryInput.value, state.customCategories),
     txType: ["Ausgabe", "Einnahme"].includes(el.typeInput.value) ? el.typeInput.value : "Ausgabe",
     amount,
     account: el.accountInput.value || "Girokonto",
@@ -627,12 +1047,12 @@ function clearForm(keepMonth = true) {
 function loadEntryIntoForm(entry) {
   el.monthInput.value = entry.month;
   el.descriptionInput.value = entry.description;
-  el.categoryInput.value = entry.category || "Sonstiges";
+  el.categoryInput.value = normalizeCategory(entry.category, state.customCategories);
   el.typeInput.value = entry.txType;
   el.amountInput.value = String(entry.amount).replace(".", ",");
   el.accountInput.value = entry.account || "Girokonto";
   el.noteInput.value = entry.note || "";
-  lastAutoCategory = entry.category || null;
+  lastAutoCategory = normalizeCategory(entry.category, state.customCategories);
   categoryManuallyOverridden = true;
 }
 
@@ -677,6 +1097,7 @@ function filteredBookings() {
 }
 
 function render() {
+  refreshCategoryOptions(true);
   renderUsers();
   renderDashboard();
   renderBookings();
@@ -697,6 +1118,29 @@ function renderUsers() {
 
 function euro(v) {
   return `${v.toFixed(2).replace(".", ",")} €`;
+}
+
+function availableDashboardYears(entries) {
+  const years = Array.from(new Set(entries.map(e => getDateParts(e.month)?.yyyy).filter(Boolean)));
+  const currentYear = new Date().getFullYear();
+  if (!years.includes(currentYear)) years.push(currentYear);
+  years.sort((a, b) => b - a);
+  return years;
+}
+
+function syncDashboardYearSelect(entries) {
+  const select = el.dashboardYearSelect;
+  const currentYear = new Date().getFullYear();
+  const years = availableDashboardYears(entries);
+
+  if (!select) return currentYear;
+
+  const previous = Number(select.value) || currentYear;
+  select.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
+
+  const selected = years.includes(previous) ? previous : years[0] || currentYear;
+  select.value = String(selected);
+  return selected;
 }
 
 function renderDashboard() {
@@ -728,7 +1172,8 @@ function renderDashboard() {
     ? top.map(([k, v]) => `<li>${k}: ${euro(v)}</li>`).join("")
     : "<li>Keine Ausgaben im aktuellen Monat</li>";
 
-  renderMonthlyCashflowChart(entries, now.getFullYear());
+  const selectedYear = syncDashboardYearSelect(entries);
+  renderMonthlyCashflowChart(entries, selectedYear);
 }
 
 function monthlyCashflowRows(entries, year) {
@@ -1295,6 +1740,119 @@ async function askText(message, title = "Eingabe", defaultValue = "") {
     okText: "Speichern",
     cancelText: "Abbrechen"
   });
+}
+
+
+
+function formatSyncDate(ts) {
+  const n = Number(ts);
+  if (!Number.isFinite(n) || n <= 0) return "-";
+  return new Date(n).toLocaleString("de-DE");
+}
+
+function updateSyncMetaDisplay() {
+  const lastWriteRaw = localStorage.getItem(SYNC_LAST_WRITE_KEY);
+  const lastRestoreRaw = localStorage.getItem(SYNC_LAST_RESTORE_KEY);
+
+  if (el.syncLastWrite) {
+    el.syncLastWrite.textContent = "Letzte Sync-Sicherung: " + formatSyncDate(lastWriteRaw);
+  }
+
+  if (el.syncLastRestore) {
+    el.syncLastRestore.textContent = "Letzte Wiederherstellung: " + formatSyncDate(lastRestoreRaw);
+  }
+}
+
+function markSyncWriteSuccess() {
+  try {
+    localStorage.setItem(SYNC_LAST_WRITE_KEY, String(Date.now()));
+  } catch (_) {}
+  updateSyncMetaDisplay();
+}
+
+function markSyncRestoreSuccess() {
+  try {
+    localStorage.setItem(SYNC_LAST_RESTORE_KEY, String(Date.now()));
+  } catch (_) {}
+  updateSyncMetaDisplay();
+}
+
+async function tryAutoRestoreFromSync() {
+  if (!hasTauriRuntime() || !syncConfigured) return;
+
+  try {
+    const raw = await tryInvokeTauriCommand("sync_restore_latest", {});
+    if (!raw || typeof raw !== "string") return;
+
+    const parsed = JSON.parse(raw);
+    Object.assign(state, sanitizeLoadedState(parsed));
+    ensureActiveUser();
+    selectedBookingId = null;
+    selectedBookingIds.clear();
+    clearForm(true);
+    render();
+    markSyncRestoreSuccess();
+    await persistState();
+  } catch (err) {
+    console.warn("Auto-Restore aus Sync-Ordner übersprungen", err);
+  }
+}
+
+function scheduleSyncAutoBackup(payload) {
+  if (!hasTauriRuntime() || !syncConfigured) return;
+
+  if (syncAutoBackupTimer) clearTimeout(syncAutoBackupTimer);
+  syncAutoBackupTimer = setTimeout(async () => {
+    syncAutoBackupTimer = null;
+    try {
+      await tryInvokeTauriCommand("sync_write_backup", { payload });
+      markSyncWriteSuccess();
+    } catch (err) {
+      console.warn("Automatisches Sync-Backup fehlgeschlagen", err);
+    }
+  }, 300);
+}
+
+async function refreshSyncStatus() {
+  if (!el.cloudStatus) return;
+
+  const hasDesktop = hasTauriRuntime();
+  if (!hasDesktop) {
+    syncConfigured = false;
+    setSyncStatus("Sync: nur in Desktop (Tauri) verfügbar");
+    return;
+  }
+
+  try {
+    const status = await tryInvokeTauriCommand("sync_get_status", {});
+    if (!status) {
+      syncConfigured = false;
+      setSyncStatus("Sync: Status nicht verfügbar");
+      return;
+    }
+
+    if (el.syncFolderInput && status.folder_path) {
+      el.syncFolderInput.value = status.folder_path;
+    }
+
+    if (!status.configured) {
+      syncConfigured = false;
+      setSyncStatus("Sync: nicht konfiguriert");
+      return;
+    }
+
+    syncConfigured = true;
+    setSyncStatus("Sync: aktiv -> " + status.folder_path);
+  } catch (err) {
+    syncConfigured = false;
+    setSyncStatus("Sync: Statusfehler");
+    console.warn("Sync-Status konnte nicht geladen werden", err);
+  }
+}
+
+function setSyncStatus(message) {
+  if (!el.cloudStatus) return;
+  el.cloudStatus.textContent = message;
 }
 
 function escapeHtml(text) {
