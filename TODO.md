@@ -53,9 +53,9 @@
 
 ## 6. Performance
 
-- [ ] Große Buchungslisten virtualisieren (UI bleibt schnell bei vielen Datensätzen).
-- [ ] Aggregationen cachen (Dashboard/Reports) für schnellere Wechsel.
-- [ ] Schreibzugriffe bündeln (Batching), wo sinnvoll.
+- [x] Große Buchungslisten virtualisieren (UI bleibt schnell bei vielen Datensätzen).
+- [x] Aggregationen cachen (Dashboard/Reports) für schnellere Wechsel.
+- [x] Schreibzugriffe bündeln (Batching), wo sinnvoll.
 
 ## 7. Android-Vorbereitung (nach Desktop-Stabilisierung)
 

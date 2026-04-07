@@ -131,6 +131,8 @@ function normalizeBookingCategory(entry, customCategories = []) {
 const state = createDefaultState();
 let stateReady = false;
 let saveTimer = null;
+let persistInFlight = false;
+let persistQueued = false;
 let categoryManuallyOverridden = false;
 let lastAutoCategory = null;
 let selectedBookingId = null;
@@ -139,6 +141,18 @@ let syncConfigured = false;
 let syncAutoBackupTimer = null;
 const selectedBookingIds = new Set();
 const monthlyChartState = { bars: [], rows: [], year: null, hoverIndex: -1, pinnedIndex: null };
+const BOOKING_RENDER_INITIAL = 250;
+const BOOKING_RENDER_STEP = 200;
+const bookingRenderState = { key: "", visibleCount: BOOKING_RENDER_INITIAL };
+
+let stateDataVersion = 0;
+const perfCache = {
+  version: -1,
+  userId: null,
+  userBookings: [],
+  reportRowsByYear: new Map(),
+  filteredSorted: { key: "", value: [] }
+};
 
 const el = {
   userSelect: document.getElementById("userSelect"),
@@ -174,6 +188,7 @@ const el = {
   resetFiltersBtn: document.getElementById("resetFiltersBtn"),
 
   bookingsBody: document.getElementById("bookingsBody"),
+  bookingsTableWrap: document.querySelector("#bookings .table-wrap"),
   deleteSelectedBookingsBtn: document.getElementById("deleteSelectedBookingsBtn"),
   selectAllBookings: document.getElementById("selectAllBookings"),
   selectedBookingsInfo: document.getElementById("selectedBookingsInfo"),
@@ -304,14 +319,42 @@ async function hydrateStateFromStorage() {
   await persistState();
 }
 
+function resetPerfCache() {
+  perfCache.version = -1;
+  perfCache.userId = null;
+  perfCache.userBookings = [];
+  perfCache.reportRowsByYear.clear();
+  perfCache.filteredSorted = { key: "", value: [] };
+}
+
+function flushPersistQueue() {
+  if (persistInFlight) {
+    persistQueued = true;
+    return;
+  }
+
+  persistInFlight = true;
+  persistState()
+    .catch(err => console.error("Speichern fehlgeschlagen", err))
+    .finally(() => {
+      persistInFlight = false;
+      if (!persistQueued) return;
+      persistQueued = false;
+      flushPersistQueue();
+    });
+}
+
 function saveState() {
   if (!stateReady) return;
+
+  stateDataVersion += 1;
+  resetPerfCache();
 
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     saveTimer = null;
-    persistState().catch(err => console.error("Speichern fehlgeschlagen", err));
-  }, 50);
+    flushPersistQueue();
+  }, 80);
 }
 
 async function persistState() {
@@ -838,11 +881,7 @@ function bindEvents() {
   });
 
   el.selectAllBookings.addEventListener("change", () => {
-    const entries = filteredBookings().sort((a, b) => {
-      const byDate = monthSortKey(b.month) - monthSortKey(a.month);
-      if (byDate !== 0) return byDate;
-      return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
-    });
+    const entries = filteredAndSortedBookings();
 
     if (el.selectAllBookings.checked) {
       entries.forEach(e => selectedBookingIds.add(e.id));
@@ -859,6 +898,19 @@ function bindEvents() {
     resetFilters();
     renderBookings();
   });
+
+  if (el.bookingsTableWrap) {
+    el.bookingsTableWrap.addEventListener("scroll", () => {
+      const entries = filteredAndSortedBookings();
+      if (entries.length <= bookingRenderState.visibleCount) return;
+
+      const remaining = el.bookingsTableWrap.scrollHeight - el.bookingsTableWrap.clientHeight - el.bookingsTableWrap.scrollTop;
+      if (remaining > 140) return;
+
+      bookingRenderState.visibleCount = Math.min(entries.length, bookingRenderState.visibleCount + BOOKING_RENDER_STEP);
+      renderBookings();
+    });
+  }
 
   if (el.dashboardYearSelect) {
     el.dashboardYearSelect.addEventListener("change", () => {
@@ -1201,7 +1253,19 @@ function loadEntryIntoForm(entry) {
 }
 
 function userBookings() {
-  return state.bookings.filter(b => b.userId === activeUser().id);
+  const userId = activeUser().id;
+
+  if (perfCache.version === stateDataVersion && perfCache.userId === userId) {
+    return perfCache.userBookings;
+  }
+
+  const list = state.bookings.filter(b => b.userId === userId);
+  perfCache.version = stateDataVersion;
+  perfCache.userId = userId;
+  perfCache.userBookings = list;
+  perfCache.reportRowsByYear.clear();
+  perfCache.filteredSorted = { key: "", value: [] };
+  return list;
 }
 
 function availableFilterYears() {
@@ -1226,7 +1290,10 @@ function refreshYearFilterOptions() {
 }
 
 function filteredBookings() {
-  return userBookings().filter(b => {
+  const source = userBookings();
+  const search = el.fSearch.value.trim().toLowerCase();
+
+  return source.filter(b => {
     const parts = getDateParts(b.month);
     if (!parts) return false;
     if (el.fMonth.value !== "Alle" && String(parts.mm).padStart(2, "0") !== el.fMonth.value) return false;
@@ -1234,12 +1301,40 @@ function filteredBookings() {
     if (el.fType.value !== "Alle" && b.txType !== el.fType.value) return false;
     if (el.fCategory.value !== "Alle" && b.category !== el.fCategory.value) return false;
     if (el.fAccount.value !== "Alle" && b.account !== el.fAccount.value) return false;
-    const s = el.fSearch.value.trim().toLowerCase();
-    if (s && !(b.description.toLowerCase().includes(s) || (b.note || "").toLowerCase().includes(s))) return false;
+    if (search && !(b.description.toLowerCase().includes(search) || (b.note || "").toLowerCase().includes(search))) return false;
     return true;
   });
 }
 
+function bookingFilterKey() {
+  return [
+    stateDataVersion,
+    activeUser().id,
+    el.fMonth.value,
+    el.fYear.value,
+    el.fType.value,
+    el.fCategory.value,
+    el.fAccount.value,
+    el.fSearch.value.trim().toLowerCase()
+  ].join("|");
+}
+
+function filteredAndSortedBookings() {
+  const key = bookingFilterKey();
+
+  if (perfCache.filteredSorted.key === key) {
+    return perfCache.filteredSorted.value;
+  }
+
+  const sorted = filteredBookings().slice().sort((a, b) => {
+    const byDate = monthSortKey(b.month) - monthSortKey(a.month);
+    if (byDate !== 0) return byDate;
+    return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
+  });
+
+  perfCache.filteredSorted = { key, value: sorted };
+  return sorted;
+}
 function emptyStateHtml(title, message) {
   return `<div class="empty-state"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(message)}</p></div>`;
 }
@@ -1317,14 +1412,35 @@ function syncDashboardYearSelect(entries) {
 
 function renderDashboard() {
   const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0") + "." + now.getFullYear();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
   const entries = userBookings();
-  const monthEntries = entries.filter(e => monthYearKey(e.month) === month);
 
-  const totalIncome = entries.filter(e => e.txType === "Einnahme").reduce((a, b) => a + b.amount, 0);
-  const totalExpense = entries.filter(e => e.txType === "Ausgabe").reduce((a, b) => a + b.amount, 0);
-  const monthIncome = monthEntries.filter(e => e.txType === "Einnahme").reduce((a, b) => a + b.amount, 0);
-  const monthExpense = monthEntries.filter(e => e.txType === "Ausgabe").reduce((a, b) => a + b.amount, 0);
+  let totalIncome = 0;
+  let totalExpense = 0;
+  let monthIncome = 0;
+  let monthExpense = 0;
+  const expenseByCategory = new Map();
+
+  entries.forEach(entry => {
+    const amount = Number(entry.amount) || 0;
+    const parts = getDateParts(entry.month);
+
+    if (entry.txType === "Einnahme") {
+      totalIncome += amount;
+      if (parts && parts.yyyy === currentYear && parts.mm === currentMonth) {
+        monthIncome += amount;
+      }
+      return;
+    }
+
+    totalExpense += amount;
+    if (parts && parts.yyyy === currentYear && parts.mm === currentMonth) {
+      monthExpense += amount;
+      const key = entry.category;
+      expenseByCategory.set(key, (expenseByCategory.get(key) || 0) + amount);
+    }
+  });
 
   const stats = [
     ["Aktueller Saldo", euro(totalIncome - totalExpense)],
@@ -1335,11 +1451,7 @@ function renderDashboard() {
 
   el.statsCards.innerHTML = stats.map(([k, v]) => `<article class="card"><p>${k}</p><h4>${v}</h4></article>`).join("");
 
-  const byCategory = {};
-  monthEntries.filter(e => e.txType === "Ausgabe").forEach(e => {
-    byCategory[e.category] = (byCategory[e.category] || 0) + e.amount;
-  });
-  const top = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const top = Array.from(expenseByCategory.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
   el.topCategories.innerHTML = top.length
     ? top.map(([k, v]) => `<li>${k}: ${euro(v)}</li>`).join("")
     : "<li>Keine Ausgaben im aktuellen Monat. Erfasse eine Ausgabe, um Kategorien zu sehen.</li>";
@@ -1625,18 +1737,24 @@ function renderMonthlyCashflowChart(entries, year) {
 function renderBookings() {
 
   refreshYearFilterOptions();
-  const entries = filteredBookings().sort((a, b) => {
-    const byDate = monthSortKey(b.month) - monthSortKey(a.month);
-    if (byDate !== 0) return byDate;
-    return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
-  });
+  const allEntries = userBookings();
+  const entries = filteredAndSortedBookings();
+  const filterKey = bookingFilterKey();
+
+  if (bookingRenderState.key !== filterKey) {
+    bookingRenderState.key = filterKey;
+    bookingRenderState.visibleCount = BOOKING_RENDER_INITIAL;
+  }
+
+  const visibleCount = Math.min(entries.length, Math.max(BOOKING_RENDER_INITIAL, bookingRenderState.visibleCount));
+  const visibleEntries = entries.slice(0, visibleCount);
 
   const visibleIds = new Set(entries.map(e => e.id));
   Array.from(selectedBookingIds).forEach(id => {
     if (!visibleIds.has(id)) selectedBookingIds.delete(id);
   });
 
-  const hasAnyBookings = userBookings().length > 0;
+  const hasAnyBookings = allEntries.length > 0;
 
   if (!entries.length) {
     const title = hasAnyBookings ? "Keine Buchungen für den aktuellen Filter" : "Noch keine Buchungen vorhanden";
@@ -1645,7 +1763,7 @@ function renderBookings() {
       : "Erfasse oben deine erste Buchung mit Datum, Beschreibung und Betrag.";
     el.bookingsBody.innerHTML = `<tr class="empty-row"><td colspan="9">${emptyStateHtml(title, message)}</td></tr>`;
   } else {
-    el.bookingsBody.innerHTML = entries.map(e => {
+    const rowsHtml = visibleEntries.map(e => {
       const rowClasses = [];
       if (Boolean(e.taxDeclaration)) rowClasses.push("tax-row");
       if (e.id === selectedBookingId) rowClasses.push("selected-row");
@@ -1665,10 +1783,20 @@ function renderBookings() {
     </tr>
   `;
     }).join("");
+
+    const hasMore = entries.length > visibleEntries.length;
+    const loadMoreHtml = hasMore
+      ? `<tr class="load-more-row"><td colspan="9"><button type="button" class="btn secondary" id="loadMoreBookingsBtn">Mehr laden (${visibleEntries.length}/${entries.length})</button></td></tr>`
+      : "";
+
+    el.bookingsBody.innerHTML = rowsHtml + loadMoreHtml;
   }
 
   if (el.selectedBookingsInfo) {
-    el.selectedBookingsInfo.textContent = `${selectedBookingIds.size} ausgewählt`;
+    const text = entries.length > visibleEntries.length
+      ? `${selectedBookingIds.size} ausgewählt · ${visibleEntries.length}/${entries.length} angezeigt`
+      : `${selectedBookingIds.size} ausgewählt`;
+    el.selectedBookingsInfo.textContent = text;
   }
 
   if (el.selectAllBookings) {
@@ -1704,6 +1832,14 @@ function renderBookings() {
     });
   });
 
+  const loadMoreBtn = document.getElementById("loadMoreBookingsBtn");
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", () => {
+      bookingRenderState.visibleCount = Math.min(entries.length, bookingRenderState.visibleCount + BOOKING_RENDER_STEP);
+      renderBookings();
+    });
+  }
+
   el.bookingsBody.querySelectorAll("tr").forEach(row => {
     row.addEventListener("click", evt => {
       if (!row.dataset.id) return;
@@ -1726,14 +1862,28 @@ function renderBookings() {
 }
 
 function reportRows(year) {
-  const rows = [];
-  for (let month = 1; month <= 12; month++) {
-    const key = `${String(month).padStart(2, "0")}.${year}`;
-    const items = userBookings().filter(e => monthYearKey(e.month) === key);
-    const income = items.filter(e => e.txType === "Einnahme").reduce((a, b) => a + b.amount, 0);
-    const expense = items.filter(e => e.txType === "Ausgabe").reduce((a, b) => a + b.amount, 0);
-    rows.push({ month, income, expense, net: income - expense });
+  const cacheKey = String(year);
+  if (perfCache.reportRowsByYear.has(cacheKey)) {
+    return perfCache.reportRowsByYear.get(cacheKey);
   }
+
+  const rows = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, income: 0, expense: 0, net: 0 }));
+
+  userBookings().forEach(entry => {
+    const parts = getDateParts(entry.month);
+    if (!parts || parts.yyyy !== year) return;
+
+    const idx = parts.mm - 1;
+    const amount = Number(entry.amount) || 0;
+    if (entry.txType === "Einnahme") rows[idx].income += amount;
+    else rows[idx].expense += amount;
+  });
+
+  rows.forEach(row => {
+    row.net = row.income - row.expense;
+  });
+
+  perfCache.reportRowsByYear.set(cacheKey, rows);
   return rows;
 }
 
@@ -1770,8 +1920,13 @@ function renderYearComparison(year, currentRows) {
   const prevExpense = prevRows.reduce((sum, row) => sum + row.expense, 0);
   const prevNet = prevIncome - prevExpense;
 
-  const currentCount = userBookings().filter(entry => getDateParts(entry.month)?.yyyy === year).length;
-  const prevCount = userBookings().filter(entry => getDateParts(entry.month)?.yyyy === prevYear).length;
+  let currentCount = 0;
+  let prevCount = 0;
+  userBookings().forEach(entry => {
+    const y = getDateParts(entry.month)?.yyyy;
+    if (y === year) currentCount += 1;
+    else if (y === prevYear) prevCount += 1;
+  });
 
   if (el.reportPrevYearHead) el.reportPrevYearHead.textContent = String(prevYear);
   if (el.reportYearHead) el.reportYearHead.textContent = String(year);
@@ -1949,8 +2104,13 @@ function buildComparisonExportModel(year) {
   const prevExpense = prevRows.reduce((sum, row) => sum + row.expense, 0);
   const prevNet = prevIncome - prevExpense;
 
-  const currentCount = userBookings().filter(entry => getDateParts(entry.month)?.yyyy === year).length;
-  const prevCount = userBookings().filter(entry => getDateParts(entry.month)?.yyyy === prevYear).length;
+  let currentCount = 0;
+  let prevCount = 0;
+  userBookings().forEach(entry => {
+    const y = getDateParts(entry.month)?.yyyy;
+    if (y === year) currentCount += 1;
+    else if (y === prevYear) prevCount += 1;
+  });
 
   const toRow = (label, prev, current, isCurrency = true) => {
     const delta = current - prev;

@@ -481,6 +481,10 @@ tbody tr.tax-row.selected-row {
   font-weight: 600;
 }
 
+.load-more-row td {
+  text-align: center;
+}
+
 .check-col {
   width: 38px;
   min-width: 38px;

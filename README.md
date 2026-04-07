@@ -197,6 +197,8 @@ Finanz-Tracker/
 
 * Current data model supports separated users, bookings, and custom categories.
 
+* Runtime performance optimizations: cached user-bookings and report aggregates, one-pass dashboard aggregation, lazy-rendering for large booking lists (incremental loading), and queued write-batching for persistence.
+
 * * *
 
 🧭 Scope
