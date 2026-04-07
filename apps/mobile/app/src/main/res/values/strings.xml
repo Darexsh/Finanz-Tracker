@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Finanz Tracker</string>
+
+    <string name="tab_overview">Overview</string>
+    <string name="tab_bookings">Bookings</string>
+    <string name="tab_reports">Reports</string>
+    <string name="tab_sync">Sync</string>
+
+    <string name="screen_overview">Overview</string>
+    <string name="screen_bookings">Bookings</string>
+    <string name="screen_reports">Reports</string>
+    <string name="screen_sync">Synchronization</string>
+
+    <string name="summary_current_balance">Current Balance</string>
+    <string name="summary_income">Income</string>
+    <string name="summary_expense">Expense</string>
+
+    <string name="label_description">Description</string>
+    <string name="label_amount">Amount</string>
+    <string name="label_category">Category</string>
+    <string name="label_account">Account</string>
+    <string name="label_note">Note</string>
+
+    <string name="button_save">Save</string>
+
+    <string name="type_income">Income</string>
+    <string name="type_expense">Expense</string>
+
+    <string name="default_category">Other</string>
+    <string name="default_account">Checking Account</string>
+
+    <string name="format_eur">%.2f €</string>
+    <string name="format_booking_type_amount">%1$s · %2$.2f €</string>
+    <string name="format_prev_year">Prev year: %.2f €</string>
+    <string name="format_current_year">Current: %.2f €</string>
+    <string name="format_delta">Delta: %.2f €</string>
+
+    <string name="report_income">Income</string>
+    <string name="report_expense">Expense</string>
+    <string name="report_balance">Balance</string>
+
+    <string name="sync_info_1">Folder-based synchronization is prepared for the Android phase.</string>
+    <string name="sync_info_2">Next step: folder picker + read/write of finanz-tracker-sync-latest.json via SAF.</string>
+</resources>

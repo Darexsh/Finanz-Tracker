@@ -3,13 +3,13 @@
 This folder contains all application targets.
 
 ## Structure
-- `desktop/`: active Tauri desktop app (current production focus).
-- `mobile/`: Android app workspace (planned, not implemented yet).
+- `desktop/`: active Tauri desktop app (stable).
+- `mobile/`: Android app workspace (scaffolded, in active development).
 
 ## Current Status
-- Desktop is feature-complete for the current scope.
-- Mobile development starts after desktop stabilization.
+- Desktop is stable for the current scope.
+- Mobile foundation is created and ready for feature implementation.
 
 ## What Will Be Added Next
 - Shared domain/service usage from `../shared/` in both app targets.
-- Mobile app architecture and build setup.
+- Full Android feature parity with desktop.

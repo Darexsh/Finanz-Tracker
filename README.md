@@ -44,7 +44,7 @@ This project is an independent personal/open-source finance tracker.
 
 **Finanz Tracker** is a desktop app to manage personal finances with multiple separated user profiles, fast booking workflows, dashboard insights, yearly reports, and optional cross-device sync via a local sync folder.
 
-The app is built with Tauri and currently optimized for desktop usage (Windows-first), while Android is planned after desktop stabilization.
+The app is built with Tauri for desktop and now includes an Android project scaffold (Kotlin + Compose) for the next implementation phase.
 
 * * *
 
@@ -150,6 +150,7 @@ Typical setup:
 
 - Desktop: Google Drive Desktop, Syncthing, or similar
 - Android: FolderSync, Syncthing, or similar
+- If you use two-way sync (for example in FolderSync), enable the option to also sync deleted files. Otherwise, deleted files can reappear on the next sync cycle.
 
 * * *
 
@@ -160,7 +161,7 @@ Typical setup:
 Finanz-Tracker/
 ├─ apps/
 │  ├─ desktop/             # Tauri desktop app (active)
-│  └─ mobile/              # Android placeholder (planned)
+│  └─ mobile/              # Android app scaffold (Kotlin/Compose, active next phase)
 ├─ shared/
 │  ├─ domain/              # shared domain logic (planned)
 │  └─ utils/               # shared utilities (planned)
@@ -206,7 +207,7 @@ Finanz-Tracker/
 
 * Desktop-first product focus until stability goals are finished.
 
-* Android app implementation is intentionally postponed to later roadmap phases.
+* Android app scaffold is available; implementation phase starts next.
 
 * Sync conflict handling is intentionally simple for non-parallel usage.
 

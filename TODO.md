@@ -59,6 +59,9 @@
 
 ## 7. Android-Vorbereitung (nach Desktop-Stabilisierung)
 
+- [x] Android-Projektgrundlage erstellt (Kotlin, Compose, Gradle Groovy, minSdk 26, applicationId com.darexsh.finanztracker).
+- [x] Mobile UI-Basis auf Deutsch lokalisiert (Navigation + Screen-Texte).
+- [x] Android-Lokalisierung via resources umgesetzt (`values` + `values-de`, automatische Systemsprache).
 - [ ] Service-Schicht entkoppeln (UI vs. Datenzugriff klar trennen).
 - [ ] Datenmodell und Validierung in gemeinsam nutzbare Module überführen.
 - [ ] API-Verträge für mobile Nutzung festziehen.

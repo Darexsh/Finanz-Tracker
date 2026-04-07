@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Finanz Tracker</string>
+
+    <string name="tab_overview">Übersicht</string>
+    <string name="tab_bookings">Buchungen</string>
+    <string name="tab_reports">Auswertung</string>
+    <string name="tab_sync">Synchronisierung</string>
+
+    <string name="screen_overview">Übersicht</string>
+    <string name="screen_bookings">Buchungen</string>
+    <string name="screen_reports">Auswertung</string>
+    <string name="screen_sync">Synchronisierung</string>
+
+    <string name="summary_current_balance">Aktueller Saldo</string>
+    <string name="summary_income">Einnahmen</string>
+    <string name="summary_expense">Ausgaben</string>
+
+    <string name="label_description">Beschreibung</string>
+    <string name="label_amount">Betrag</string>
+    <string name="label_category">Kategorie</string>
+    <string name="label_account">Konto</string>
+    <string name="label_note">Notiz</string>
+
+    <string name="button_save">Speichern</string>
+
+    <string name="type_income">Einnahme</string>
+    <string name="type_expense">Ausgabe</string>
+
+    <string name="default_category">Sonstiges</string>
+    <string name="default_account">Girokonto</string>
+
+    <string name="format_eur">%.2f €</string>
+    <string name="format_booking_type_amount">%1$s · %2$.2f €</string>
+    <string name="format_prev_year">Vorjahr: %.2f €</string>
+    <string name="format_current_year">Aktuell: %.2f €</string>
+    <string name="format_delta">Differenz: %.2f €</string>
+
+    <string name="report_income">Einnahmen</string>
+    <string name="report_expense">Ausgaben</string>
+    <string name="report_balance">Saldo</string>
+
+    <string name="sync_info_1">Die ordnerbasierte Synchronisierung ist für die Android-Phase vorbereitet.</string>
+    <string name="sync_info_2">Nächster Schritt: Ordnerauswahl + Lesen/Schreiben von finanz-tracker-sync-latest.json über SAF.</string>
+</resources>
