@@ -159,16 +159,54 @@
           <section class="panel">
             <h3>Jahresauswertung</h3>
             <div class="report-toolbar">
-              <label>
-                Jahr
-                <input id="reportYearInput" value="2026" />
-              </label>
-              <button id="loadReportBtn" class="btn secondary">Auswertung laden</button>
-              <button id="exportReportBtn" class="btn primary">CSV exportieren</button>
+              <div class="report-toolbar-fields">
+                <label>
+                  Jahr
+                  <input id="reportYearInput" value="2026" />
+                </label>
+                <label>
+                  Export-Inhalt
+                  <select id="reportExportScope">
+                    <option value="summary" selected>Jahresübersicht</option>
+                    <option value="year-comparison">Jahresvergleich (Jahr vs. Vorjahr)</option>
+                    <option value="year-bookings">Alle Buchungen im Jahr</option>
+                    <option value="month-bookings">Alle Buchungen im Monat</option>
+                  </select>
+                </label>
+                <label>
+                  Monat
+                  <select id="reportExportMonth"></select>
+                </label>
+              </div>
+              <div class="report-toolbar-actions">
+                <select id="reportExportFormat">
+                  <option value="pdf" selected>PDF</option>
+                  <option value="xlsx">XLSX</option>
+                  <option value="csv">CSV</option>
+                </select>
+                <button id="exportReportBtn" class="btn primary">Exportieren</button>
+              </div>
             </div>
           </section>
 
           <section class="cards" id="reportStatsCards"></section>
+
+          <section class="panel">
+            <h3>Jahresvergleich</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Kennzahl</th>
+                    <th id="reportPrevYearHead">Vorjahr</th>
+                    <th id="reportYearHead">Aktuelles Jahr</th>
+                    <th>Veränderung</th>
+                  </tr>
+                </thead>
+                <tbody id="reportCompareBody"></tbody>
+              </table>
+            </div>
+          </section>
 
           <section class="panel">
             <h3>Monate</h3>
@@ -231,6 +269,9 @@
 
     <div id="toastContainer" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
+    <script src="vendor/xlsx.full.min.js"></script>
+    <script src="vendor/jspdf.umd.min.js"></script>
+    <script src="vendor/jspdf.plugin.autotable.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

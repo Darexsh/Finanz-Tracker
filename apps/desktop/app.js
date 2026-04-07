@@ -179,9 +179,14 @@ const el = {
   selectedBookingsInfo: document.getElementById("selectedBookingsInfo"),
 
   reportYearInput: document.getElementById("reportYearInput"),
-  loadReportBtn: document.getElementById("loadReportBtn"),
   exportReportBtn: document.getElementById("exportReportBtn"),
+  reportExportFormat: document.getElementById("reportExportFormat"),
+  reportExportScope: document.getElementById("reportExportScope"),
+  reportExportMonth: document.getElementById("reportExportMonth"),
   reportStatsCards: document.getElementById("reportStatsCards"),
+  reportPrevYearHead: document.getElementById("reportPrevYearHead"),
+  reportYearHead: document.getElementById("reportYearHead"),
+  reportCompareBody: document.getElementById("reportCompareBody"),
   reportBody: document.getElementById("reportBody"),
 
   syncFolderInput: document.getElementById("syncFolderInput"),
@@ -434,7 +439,12 @@ function setDefaultMonth() {
 }
 
 function setDefaultReportYear() {
-  el.reportYearInput.value = String(new Date().getFullYear());
+  const now = new Date();
+  el.reportYearInput.value = String(now.getFullYear());
+  if (el.reportExportMonth) {
+    el.reportExportMonth.value = String(now.getMonth() + 1).padStart(2, "0");
+  }
+  updateReportExportControls();
 }
 
 function initBookingFormErrorSlots() {
@@ -495,6 +505,19 @@ function clearBookingFormErrors() {
   BOOKING_VALIDATION_FIELDS.forEach(key => clearFieldError(el[key]));
 }
 
+function initReportExportMonthOptions() {
+  if (!el.reportExportMonth) return;
+  el.reportExportMonth.innerHTML = "";
+
+  for (let month = 1; month <= 12; month++) {
+    const option = document.createElement("option");
+    const monthValue = String(month).padStart(2, "0");
+    option.value = monthValue;
+    option.textContent = monthValue + " - " + MONTH_NAMES[month - 1];
+    el.reportExportMonth.appendChild(option);
+  }
+}
+
 function initSelectOptions() {
   refreshCategoryOptions(false);
   fillSelect(el.accountInput, ACCOUNTS);
@@ -502,6 +525,9 @@ function initSelectOptions() {
   fillSelect(el.fMonth, ["Monat: Alle", ...Array.from({ length: 12 }, (_, i) => `${String(i + 1).padStart(2, "0")}`)], true);
   fillSelect(el.fYear, ["Jahr: Alle", String(new Date().getFullYear())], true);
   fillSelect(el.fAccount, ["Konto: Alle", ...ACCOUNTS], true);
+  initReportExportMonthOptions();
+  if (el.reportExportScope) el.reportExportScope.value = "summary";
+  updateReportExportControls();
 }
 
 function fillSelect(select, values, withAllPrefix = false) {
@@ -932,7 +958,20 @@ function bindEvents() {
     }
   });
 
-  el.loadReportBtn.addEventListener("click", () => renderReport());
+  if (el.reportYearInput) {
+    const refreshReport = () => renderReport();
+    el.reportYearInput.addEventListener("change", refreshReport);
+    el.reportYearInput.addEventListener("blur", refreshReport);
+    el.reportYearInput.addEventListener("keydown", evt => {
+      if (evt.key !== "Enter") return;
+      evt.preventDefault();
+      refreshReport();
+    });
+  }
+
+  if (el.reportExportScope) {
+    el.reportExportScope.addEventListener("change", () => updateReportExportControls());
+  }
   setupMonthlyChartInteractions();
   window.addEventListener("resize", () => {
     if (!stateReady) return;
@@ -940,7 +979,7 @@ function bindEvents() {
   });
 
   el.exportReportBtn.addEventListener("click", async () => {
-    await exportReportCsv();
+    await exportReport();
   });
 
   document.addEventListener("click", evt => {
@@ -1698,11 +1737,70 @@ function reportRows(year) {
   return rows;
 }
 
+function compareRowHtml(label, prevValue, currentValue, isCurrency = true) {
+  const delta = currentValue - prevValue;
+  const pct = prevValue === 0 ? null : (delta / prevValue) * 100;
+  const deltaClass = delta > 0 ? "cmp-up" : delta < 0 ? "cmp-down" : "cmp-flat";
+  const deltaSign = delta > 0 ? "+" : "";
+
+  const prevText = isCurrency ? euro(prevValue) : String(prevValue);
+  const currentText = isCurrency ? euro(currentValue) : String(currentValue);
+  const deltaText = isCurrency ? `${deltaSign}${euro(delta)}` : `${deltaSign}${delta}`;
+  const pctText = pct === null ? "-" : `${deltaSign}${pct.toFixed(1).replace(".", ",")}%`;
+
+  return `
+    <tr>
+      <td>${escapeHtml(label)}</td>
+      <td>${escapeHtml(prevText)}</td>
+      <td>${escapeHtml(currentText)}</td>
+      <td class="${deltaClass}">${escapeHtml(deltaText)} <span class="cmp-pct">(${escapeHtml(pctText)})</span></td>
+    </tr>
+  `;
+}
+
+function renderYearComparison(year, currentRows) {
+  const prevYear = year - 1;
+  const prevRows = reportRows(prevYear);
+
+  const currentIncome = currentRows.reduce((sum, row) => sum + row.income, 0);
+  const currentExpense = currentRows.reduce((sum, row) => sum + row.expense, 0);
+  const currentNet = currentIncome - currentExpense;
+
+  const prevIncome = prevRows.reduce((sum, row) => sum + row.income, 0);
+  const prevExpense = prevRows.reduce((sum, row) => sum + row.expense, 0);
+  const prevNet = prevIncome - prevExpense;
+
+  const currentCount = userBookings().filter(entry => getDateParts(entry.month)?.yyyy === year).length;
+  const prevCount = userBookings().filter(entry => getDateParts(entry.month)?.yyyy === prevYear).length;
+
+  if (el.reportPrevYearHead) el.reportPrevYearHead.textContent = String(prevYear);
+  if (el.reportYearHead) el.reportYearHead.textContent = String(year);
+
+  const hasData =
+    currentIncome > 0 || currentExpense > 0 || currentCount > 0 ||
+    prevIncome > 0 || prevExpense > 0 || prevCount > 0;
+
+  if (!hasData) {
+    el.reportCompareBody.innerHTML = `<tr class="empty-row"><td colspan="4">${emptyStateHtml(`Für ${year} und ${prevYear} liegen noch keine Buchungen vor`, "Sobald Buchungen erfasst wurden, erscheint hier der Jahresvergleich.")}</td></tr>`;
+    return;
+  }
+
+  el.reportCompareBody.innerHTML = [
+    compareRowHtml("Einnahmen", prevIncome, currentIncome, true),
+    compareRowHtml("Ausgaben", prevExpense, currentExpense, true),
+    compareRowHtml("Saldo", prevNet, currentNet, true),
+    compareRowHtml("Buchungen", prevCount, currentCount, false)
+  ].join("");
+}
+
 function renderReport() {
   const year = parseYear(el.reportYearInput.value);
   if (!year) {
     el.reportStatsCards.innerHTML = "";
     el.reportBody.innerHTML = '<tr><td colspan="4">Bitte ein gültiges Jahr wie 2026 eingeben.</td></tr>';
+    if (el.reportCompareBody) {
+      el.reportCompareBody.innerHTML = '<tr><td colspan="4">Bitte ein gültiges Jahr wie 2026 eingeben.</td></tr>';
+    }
     return;
   }
 
@@ -1716,6 +1814,8 @@ function renderReport() {
     ["Jahr Ausgaben", euro(totalExpense)],
     ["Jahr Saldo", euro(net)]
   ].map(([k, v]) => `<article class="card"><p>${k}</p><h4>${v}</h4></article>`).join("");
+
+  renderYearComparison(year, rows);
 
   const hasReportData = rows.some(r => r.income > 0 || r.expense > 0);
   if (!hasReportData) {
@@ -1733,7 +1833,6 @@ function renderReport() {
   `).join("");
 }
 
-
 async function tryInvokeTauriCommand(cmd, payload) {
   const w = window;
 
@@ -1748,36 +1847,574 @@ async function tryInvokeTauriCommand(cmd, payload) {
   return null;
 }
 
-async function exportReportCsv() {
-  const year = parseYear(el.reportYearInput.value);
-  if (!year) {
-    await showInfo("Bitte zuerst ein gültiges Jahr eintragen.");
-    return;
+function getReportExportScope() {
+  const scope = String(el.reportExportScope?.value || "summary").toLowerCase();
+  if (scope === "year-bookings" || scope === "month-bookings" || scope === "year-comparison") return scope;
+  return "summary";
+}
+
+function getReportExportMonth() {
+  const raw = String(el.reportExportMonth?.value || "").trim();
+  if (!/^\d{2}$/.test(raw)) return null;
+  const month = Number(raw);
+  if (month < 1 || month > 12) return null;
+  return month;
+}
+
+function reportExportMonthLabel(month) {
+  if (!month || month < 1 || month > 12) return "";
+  return MONTH_NAMES[month - 1];
+}
+
+function updateReportExportControls() {
+  if (!el.reportExportScope || !el.reportExportMonth) return;
+  const scope = getReportExportScope();
+  const needsMonth = scope === "month-bookings";
+  el.reportExportMonth.disabled = !needsMonth;
+}
+
+function collectExportBookings(year, month = null) {
+  return userBookings()
+    .filter(entry => {
+      const parts = getDateParts(entry.month);
+      if (!parts) return false;
+      if (parts.yyyy !== year) return false;
+      if (month !== null && parts.mm !== month) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const byDate = monthSortKey(b.month) - monthSortKey(a.month);
+      if (byDate !== 0) return byDate;
+      return (Number(b.createdAt || 0) - Number(a.createdAt || 0));
+    });
+}
+
+function buildSummaryExportModel(year) {
+  const rows = reportRows(year);
+  const totalIncome = rows.reduce((sum, row) => sum + row.income, 0);
+  const totalExpense = rows.reduce((sum, row) => sum + row.expense, 0);
+  const totalNet = totalIncome - totalExpense;
+
+  return {
+    kind: "summary",
+    year,
+    createdAt: new Date().toLocaleString("de-DE"),
+    currency: "EUR",
+    rows,
+    totals: { income: totalIncome, expense: totalExpense, net: totalNet }
+  };
+}
+
+function buildBookingsExportModel(year, month = null) {
+  const rows = collectExportBookings(year, month).map(entry => ({
+    date: entry.month,
+    description: entry.description,
+    category: normalizeCategory(entry.category, state.customCategories),
+    txType: entry.txType,
+    amount: Number(entry.amount || 0),
+    account: entry.account || "",
+    note: entry.note || "",
+    taxDeclaration: Boolean(entry.taxDeclaration)
+  }));
+
+  const income = rows.filter(row => row.txType === "Einnahme").reduce((sum, row) => sum + row.amount, 0);
+  const expense = rows.filter(row => row.txType === "Ausgabe").reduce((sum, row) => sum + row.amount, 0);
+
+  return {
+    kind: "bookings",
+    year,
+    month,
+    createdAt: new Date().toLocaleString("de-DE"),
+    currency: "EUR",
+    rows,
+    totals: {
+      count: rows.length,
+      income,
+      expense,
+      net: income - expense
+    }
+  };
+}
+
+function buildComparisonExportModel(year) {
+  const prevYear = year - 1;
+  const currentRows = reportRows(year);
+  const prevRows = reportRows(prevYear);
+
+  const currentIncome = currentRows.reduce((sum, row) => sum + row.income, 0);
+  const currentExpense = currentRows.reduce((sum, row) => sum + row.expense, 0);
+  const currentNet = currentIncome - currentExpense;
+
+  const prevIncome = prevRows.reduce((sum, row) => sum + row.income, 0);
+  const prevExpense = prevRows.reduce((sum, row) => sum + row.expense, 0);
+  const prevNet = prevIncome - prevExpense;
+
+  const currentCount = userBookings().filter(entry => getDateParts(entry.month)?.yyyy === year).length;
+  const prevCount = userBookings().filter(entry => getDateParts(entry.month)?.yyyy === prevYear).length;
+
+  const toRow = (label, prev, current, isCurrency = true) => {
+    const delta = current - prev;
+    const pct = prev === 0 ? null : (delta / prev) * 100;
+    return { label, prev, current, delta, pct, isCurrency };
+  };
+
+  return {
+    kind: "comparison",
+    year,
+    prevYear,
+    createdAt: new Date().toLocaleString("de-DE"),
+    currency: "EUR",
+    rows: [
+      toRow("Einnahmen", prevIncome, currentIncome, true),
+      toRow("Ausgaben", prevExpense, currentExpense, true),
+      toRow("Saldo", prevNet, currentNet, true),
+      toRow("Buchungen", prevCount, currentCount, false)
+    ]
+  };
+}
+
+function buildReportExportModel(year, scope, month) {
+  if (scope === "year-bookings") {
+    return buildBookingsExportModel(year, null);
+  }
+  if (scope === "month-bookings") {
+    return buildBookingsExportModel(year, month);
+  }
+  if (scope === "year-comparison") {
+    return buildComparisonExportModel(year);
+  }
+  return buildSummaryExportModel(year);
+}
+function reportExportMoney(value) {
+  return Number(value || 0).toFixed(2).replace(".", ",");
+}
+
+function reportExportPercent(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "-";
+  const num = Number(value);
+  const sign = num > 0 ? "+" : "";
+  return sign + num.toFixed(1).replace(".", ",") + "%";
+}
+
+function csvCell(value) {
+  const raw = String(value ?? "");
+  return '"' + raw.replace(/"/g, '""') + '"';
+}
+
+function csvLine(fields) {
+  return fields.map(csvCell).join(";");
+}
+
+function buildCsvSummaryContent(model) {
+  const lines = [
+    csvLine(["Export", "Finanz Tracker Jahresauswertung"]),
+    csvLine(["Jahr", String(model.year)]),
+    csvLine(["Erstellt am", model.createdAt]),
+    csvLine(["Währung", model.currency]),
+    "",
+    csvLine(["Monat", "Einnahmen", "Ausgaben", "Saldo"]),
+    ...model.rows.map(row => csvLine([
+      MONTH_NAMES[row.month - 1],
+      reportExportMoney(row.income),
+      reportExportMoney(row.expense),
+      reportExportMoney(row.net)
+    ])),
+    "",
+    csvLine([
+      "Gesamtsumme",
+      reportExportMoney(model.totals.income),
+      reportExportMoney(model.totals.expense),
+      reportExportMoney(model.totals.net)
+    ])
+  ];
+
+  return "\uFEFF" + lines.join("\n");
+}
+
+function buildCsvBookingsContent(model) {
+  const scopeLabel = model.month
+    ? reportExportMonthLabel(model.month) + " " + model.year
+    : String(model.year);
+
+  const lines = [
+    csvLine(["Export", "Finanz Tracker Buchungsliste"]),
+    csvLine(["Zeitraum", scopeLabel]),
+    csvLine(["Erstellt am", model.createdAt]),
+    csvLine(["Währung", model.currency]),
+    "",
+    csvLine(["Datum", "Beschreibung", "Kategorie", "Typ", "Betrag", "Konto", "Steuererklärung", "Notiz"]),
+    ...model.rows.map(row => csvLine([
+      row.date,
+      row.description,
+      row.category,
+      row.txType,
+      reportExportMoney(row.amount),
+      row.account,
+      row.taxDeclaration ? "Ja" : "Nein",
+      row.note
+    ])),
+    "",
+    csvLine(["Anzahl Buchungen", String(model.totals.count)]),
+    csvLine(["Summe Einnahmen", reportExportMoney(model.totals.income)]),
+    csvLine(["Summe Ausgaben", reportExportMoney(model.totals.expense)]),
+    csvLine(["Saldo", reportExportMoney(model.totals.net)])
+  ];
+
+  return "\uFEFF" + lines.join("\n");
+}
+
+function buildCsvComparisonContent(model) {
+  const lines = [
+    csvLine(["Export", "Finanz Tracker Jahresvergleich"]),
+    csvLine(["Jahr", String(model.year)]),
+    csvLine(["Vorjahr", String(model.prevYear)]),
+    csvLine(["Erstellt am", model.createdAt]),
+    csvLine(["Währung", model.currency]),
+    "",
+    csvLine(["Kennzahl", String(model.prevYear), String(model.year), "Veränderung", "Veränderung %"]),
+    ...model.rows.map(row => {
+      const prevValue = row.isCurrency ? reportExportMoney(row.prev) : String(row.prev);
+      const currentValue = row.isCurrency ? reportExportMoney(row.current) : String(row.current);
+      const deltaValue = row.isCurrency ? reportExportMoney(row.delta) : String(row.delta);
+      return csvLine([
+        row.label,
+        prevValue,
+        currentValue,
+        deltaValue,
+        reportExportPercent(row.pct)
+      ]);
+    })
+  ];
+
+  return "\uFEFF" + lines.join("\n");
+}
+
+function buildCsvContent(model) {
+  if (model.kind === "bookings") return buildCsvBookingsContent(model);
+  if (model.kind === "comparison") return buildCsvComparisonContent(model);
+  return buildCsvSummaryContent(model);
+}
+
+function buildXlsxSummaryBytes(model) {
+  const xlsx = window.XLSX;
+  if (!xlsx) throw new Error("XLSX-Bibliothek wurde nicht geladen.");
+
+  const aoa = [
+    ["Export", "Finanz Tracker Jahresauswertung"],
+    ["Jahr", String(model.year)],
+    ["Erstellt am", model.createdAt],
+    ["Währung", model.currency],
+    [],
+    ["Monat", "Einnahmen", "Ausgaben", "Saldo"],
+    ...model.rows.map(row => [
+      MONTH_NAMES[row.month - 1],
+      Number(row.income || 0),
+      Number(row.expense || 0),
+      Number(row.net || 0)
+    ]),
+    [],
+    [
+      "Gesamtsumme",
+      Number(model.totals.income || 0),
+      Number(model.totals.expense || 0),
+      Number(model.totals.net || 0)
+    ]
+  ];
+
+  const ws = xlsx.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [
+    { wch: 20 },
+    { wch: 16 },
+    { wch: 16 },
+    { wch: 16 }
+  ];
+
+  const wb = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(wb, ws, "Auswertung " + model.year);
+
+  const arr = xlsx.write(wb, { type: "array", bookType: "xlsx" });
+  return new Uint8Array(arr);
+}
+
+function buildXlsxBookingsBytes(model) {
+  const xlsx = window.XLSX;
+  if (!xlsx) throw new Error("XLSX-Bibliothek wurde nicht geladen.");
+
+  const scopeLabel = model.month
+    ? reportExportMonthLabel(model.month) + " " + model.year
+    : String(model.year);
+
+  const aoa = [
+    ["Export", "Finanz Tracker Buchungsliste"],
+    ["Zeitraum", scopeLabel],
+    ["Erstellt am", model.createdAt],
+    ["Währung", model.currency],
+    [],
+    ["Datum", "Beschreibung", "Kategorie", "Typ", "Betrag", "Konto", "Steuererklärung", "Notiz"],
+    ...model.rows.map(row => [
+      row.date,
+      row.description,
+      row.category,
+      row.txType,
+      Number(row.amount || 0),
+      row.account,
+      row.taxDeclaration ? "Ja" : "Nein",
+      row.note
+    ]),
+    [],
+    ["Anzahl Buchungen", Number(model.totals.count || 0)],
+    ["Summe Einnahmen", Number(model.totals.income || 0)],
+    ["Summe Ausgaben", Number(model.totals.expense || 0)],
+    ["Saldo", Number(model.totals.net || 0)]
+  ];
+
+  const ws = xlsx.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [
+    { wch: 12 },
+    { wch: 30 },
+    { wch: 22 },
+    { wch: 12 },
+    { wch: 14 },
+    { wch: 18 },
+    { wch: 16 },
+    { wch: 36 }
+  ];
+
+  const wb = xlsx.utils.book_new();
+  const name = model.month
+    ? "Buchungen " + String(model.month).padStart(2, "0") + "." + model.year
+    : "Buchungen " + model.year;
+  xlsx.utils.book_append_sheet(wb, ws, name.slice(0, 31));
+
+  const arr = xlsx.write(wb, { type: "array", bookType: "xlsx" });
+  return new Uint8Array(arr);
+}
+
+function buildXlsxComparisonBytes(model) {
+  const xlsx = window.XLSX;
+  if (!xlsx) throw new Error("XLSX-Bibliothek wurde nicht geladen.");
+
+  const aoa = [
+    ["Export", "Finanz Tracker Jahresvergleich"],
+    ["Jahr", String(model.year)],
+    ["Vorjahr", String(model.prevYear)],
+    ["Erstellt am", model.createdAt],
+    ["Währung", model.currency],
+    [],
+    ["Kennzahl", String(model.prevYear), String(model.year), "Veränderung", "Veränderung %"],
+    ...model.rows.map(row => [
+      row.label,
+      row.isCurrency ? Number(row.prev || 0) : Number(row.prev || 0),
+      row.isCurrency ? Number(row.current || 0) : Number(row.current || 0),
+      row.isCurrency ? Number(row.delta || 0) : Number(row.delta || 0),
+      reportExportPercent(row.pct)
+    ])
+  ];
+
+  const ws = xlsx.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [
+    { wch: 20 },
+    { wch: 16 },
+    { wch: 16 },
+    { wch: 16 },
+    { wch: 14 }
+  ];
+
+  const wb = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(wb, ws, "Vergleich " + model.year);
+
+  const arr = xlsx.write(wb, { type: "array", bookType: "xlsx" });
+  return new Uint8Array(arr);
+}
+
+function buildXlsxBytes(model) {
+  if (model.kind === "bookings") return buildXlsxBookingsBytes(model);
+  if (model.kind === "comparison") return buildXlsxComparisonBytes(model);
+  return buildXlsxSummaryBytes(model);
+}
+
+function buildPdfSummaryBytes(model) {
+  const jsPdfNs = window.jspdf;
+  if (!jsPdfNs?.jsPDF) throw new Error("PDF-Bibliothek wurde nicht geladen.");
+
+  const doc = new jsPdfNs.jsPDF({ unit: "pt", format: "a4" });
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("Finanz Tracker Jahresauswertung", 40, 44);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Jahr: " + model.year, 40, 66);
+  doc.text("Erstellt am: " + model.createdAt, 40, 82);
+  doc.text("Währung: " + model.currency, 40, 98);
+
+  const body = model.rows.map(row => [
+    MONTH_NAMES[row.month - 1],
+    reportExportMoney(row.income),
+    reportExportMoney(row.expense),
+    reportExportMoney(row.net)
+  ]);
+
+  if (typeof doc.autoTable === "function") {
+    doc.autoTable({
+      startY: 116,
+      head: [["Monat", "Einnahmen", "Ausgaben", "Saldo"]],
+      body,
+      styles: { font: "helvetica", fontSize: 9 },
+      headStyles: { fillColor: [15, 118, 110] }
+    });
+
+    const endY = doc.lastAutoTable?.finalY || 116;
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      "Gesamtsumme  Einnahmen: " + reportExportMoney(model.totals.income) +
+      "   Ausgaben: " + reportExportMoney(model.totals.expense) +
+      "   Saldo: " + reportExportMoney(model.totals.net),
+      40,
+      endY + 24
+    );
   }
 
-  const lines = ["Monat;Einnahmen;Ausgaben;Saldo"];
-  reportRows(year).forEach(r => {
-    const income = r.income.toFixed(2).replace(".", ",");
-    const expense = r.expense.toFixed(2).replace(".", ",");
-    const net = r.net.toFixed(2).replace(".", ",");
-    lines.push(`${MONTH_NAMES[r.month - 1]};${income};${expense};${net}`);
+  const arr = doc.output("arraybuffer");
+  return new Uint8Array(arr);
+}
+
+function buildPdfBookingsBytes(model) {
+  const jsPdfNs = window.jspdf;
+  if (!jsPdfNs?.jsPDF) throw new Error("PDF-Bibliothek wurde nicht geladen.");
+
+  const doc = new jsPdfNs.jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+
+  const scopeLabel = model.month
+    ? reportExportMonthLabel(model.month) + " " + model.year
+    : String(model.year);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("Finanz Tracker Buchungsliste", 40, 44);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Zeitraum: " + scopeLabel, 40, 66);
+  doc.text("Erstellt am: " + model.createdAt, 40, 82);
+  doc.text("Währung: " + model.currency, 40, 98);
+
+  const body = model.rows.map(row => [
+    row.date,
+    row.description,
+    row.category,
+    row.txType,
+    reportExportMoney(row.amount),
+    row.account,
+    row.taxDeclaration ? "Ja" : "Nein",
+    row.note
+  ]);
+
+  if (typeof doc.autoTable === "function") {
+    doc.autoTable({
+      startY: 116,
+      head: [["Datum", "Beschreibung", "Kategorie", "Typ", "Betrag", "Konto", "Steuererklärung", "Notiz"]],
+      body,
+      styles: { font: "helvetica", fontSize: 8, cellPadding: 4 },
+      headStyles: { fillColor: [15, 118, 110] },
+      columnStyles: {
+        0: { cellWidth: 64 },
+        1: { cellWidth: 160 },
+        2: { cellWidth: 112 },
+        3: { cellWidth: 58 },
+        4: { cellWidth: 68 },
+        5: { cellWidth: 90 },
+        6: { cellWidth: 78 },
+        7: { cellWidth: 118 }
+      }
+    });
+
+    const endY = doc.lastAutoTable?.finalY || 116;
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      "Buchungen: " + model.totals.count +
+      "   Einnahmen: " + reportExportMoney(model.totals.income) +
+      "   Ausgaben: " + reportExportMoney(model.totals.expense) +
+      "   Saldo: " + reportExportMoney(model.totals.net),
+      40,
+      endY + 24
+    );
+  }
+
+  const arr = doc.output("arraybuffer");
+  return new Uint8Array(arr);
+}
+
+function buildPdfComparisonBytes(model) {
+  const jsPdfNs = window.jspdf;
+  if (!jsPdfNs?.jsPDF) throw new Error("PDF-Bibliothek wurde nicht geladen.");
+
+  const doc = new jsPdfNs.jsPDF({ unit: "pt", format: "a4" });
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("Finanz Tracker Jahresvergleich", 40, 44);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Jahr: " + model.year, 40, 66);
+  doc.text("Vorjahr: " + model.prevYear, 40, 82);
+  doc.text("Erstellt am: " + model.createdAt, 40, 98);
+  doc.text("Währung: " + model.currency, 40, 114);
+
+  const body = model.rows.map(row => {
+    const prevValue = row.isCurrency ? reportExportMoney(row.prev) : String(row.prev);
+    const currentValue = row.isCurrency ? reportExportMoney(row.current) : String(row.current);
+    const deltaValue = row.isCurrency ? reportExportMoney(row.delta) : String(row.delta);
+    return [row.label, prevValue, currentValue, deltaValue, reportExportPercent(row.pct)];
   });
 
-  const content = lines.join("\n");
-  const filename = `auswertung_${year}.csv`;
-
-  try {
-    const writtenPath = await tryInvokeTauriCommand("write_report_csv", { filename, content });
-    if (writtenPath) {
-      await showInfo(`CSV exportiert:\n${writtenPath}`, "Export");
-      return;
-    }
-  } catch (err) {
-    await showInfo(`Export fehlgeschlagen:\n${String(err)}`, "Exportfehler");
-    return;
+  if (typeof doc.autoTable === "function") {
+    doc.autoTable({
+      startY: 132,
+      head: [["Kennzahl", String(model.prevYear), String(model.year), "Veränderung", "Veränderung %"]],
+      body,
+      styles: { font: "helvetica", fontSize: 9 },
+      headStyles: { fillColor: [15, 118, 110] }
+    });
   }
 
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+  const arr = doc.output("arraybuffer");
+  return new Uint8Array(arr);
+}
+
+function buildPdfBytes(model) {
+  if (model.kind === "bookings") return buildPdfBookingsBytes(model);
+  if (model.kind === "comparison") return buildPdfComparisonBytes(model);
+  return buildPdfSummaryBytes(model);
+}
+
+function reportExportFilename(model, format) {
+  const ext = String(format || "csv").toLowerCase();
+  if (model.kind === "bookings") {
+    if (model.month) {
+      return "buchungen_" + String(model.month).padStart(2, "0") + "_" + model.year + "." + ext;
+    }
+    return "buchungen_" + model.year + "." + ext;
+  }
+  if (model.kind === "comparison") {
+    return "jahresvergleich_" + model.year + "_vs_" + model.prevYear + "." + ext;
+  }
+  return "auswertung_" + model.year + "." + ext;
+}
+function bytesToBase64(bytes) {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  return btoa(binary);
+}
+
+function triggerDownload(filename, content, mimeType = "application/octet-stream") {
+  const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -1786,7 +2423,120 @@ async function exportReportCsv() {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
-  await showInfo("CSV wurde als Browser-Download gestartet.", "Export");
+}
+
+async function writeBinaryReportViaTauri(filename, bytes) {
+  const base64 = bytesToBase64(bytes);
+  return tryInvokeTauriCommand("write_report_binary", {
+    filename,
+    contentBase64: base64,
+    content_base64: base64
+  });
+}
+
+async function exportReport() {
+  const year = parseYear(el.reportYearInput.value);
+  if (!year) {
+    showToast("Bitte zuerst ein gültiges Jahr eintragen.", "error");
+    return;
+  }
+
+  const scope = getReportExportScope();
+  const month = scope === "month-bookings" ? getReportExportMonth() : null;
+  if (scope === "month-bookings" && month === null) {
+    showToast("Bitte einen gültigen Monat für den Export wählen.", "error");
+    return;
+  }
+
+  const model = buildReportExportModel(year, scope, month);
+  const format = String(el.reportExportFormat?.value || "pdf").toLowerCase();
+
+  if (format === "xlsx") {
+    const filename = reportExportFilename(model, "xlsx");
+    let bytes;
+    try {
+      bytes = buildXlsxBytes(model);
+    } catch (err) {
+      showToast("XLSX konnte nicht erstellt werden.", "error");
+      return;
+    }
+
+    try {
+      const writtenPath = await writeBinaryReportViaTauri(filename, bytes);
+      if (writtenPath) {
+        showToast("XLSX exportiert: " + writtenPath, "success");
+        return;
+      }
+    } catch (err) {
+      const message = String(err || "");
+      if (message.includes("EXPORT_CANCELED")) {
+        showToast("Export abgebrochen.", "info");
+        return;
+      }
+      triggerDownload(filename, bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      showToast("XLSX als Browser-Download gestartet.", "success");
+      return;
+    }
+
+    triggerDownload(filename, bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    showToast("XLSX als Browser-Download gestartet.", "success");
+    return;
+  }
+
+  if (format === "pdf") {
+    const filename = reportExportFilename(model, "pdf");
+    let bytes;
+    try {
+      bytes = buildPdfBytes(model);
+    } catch (err) {
+      showToast("PDF konnte nicht erstellt werden.", "error");
+      return;
+    }
+
+    try {
+      const writtenPath = await writeBinaryReportViaTauri(filename, bytes);
+      if (writtenPath) {
+        showToast("PDF exportiert: " + writtenPath, "success");
+        return;
+      }
+    } catch (err) {
+      const message = String(err || "");
+      if (message.includes("EXPORT_CANCELED")) {
+        showToast("Export abgebrochen.", "info");
+        return;
+      }
+      triggerDownload(filename, bytes, "application/pdf");
+      showToast("PDF als Browser-Download gestartet.", "success");
+      return;
+    }
+
+    triggerDownload(filename, bytes, "application/pdf");
+    showToast("PDF als Browser-Download gestartet.", "success");
+    return;
+  }
+
+  const filename = reportExportFilename(model, "csv");
+  const content = buildCsvContent(model);
+
+  try {
+    const writtenPath = await tryInvokeTauriCommand("write_report_csv", { filename, content });
+    if (writtenPath) {
+      showToast("CSV exportiert: " + writtenPath, "success");
+      return;
+    }
+  } catch (err) {
+    const message = String(err || "");
+    if (message.includes("EXPORT_CANCELED")) {
+      showToast("Export abgebrochen.", "info");
+      return;
+    }
+    triggerDownload(filename, content, "text/csv;charset=utf-8");
+    showToast("CSV als Browser-Download gestartet.", "success");
+    return;
+  }
+
+  triggerDownload(filename, content, "text/csv;charset=utf-8");
+  showToast("CSV als Browser-Download gestartet.", "success");
 }
 function showDialog({
   title = "Hinweis",

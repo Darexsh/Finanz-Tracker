@@ -67,7 +67,7 @@ The app is built with Tauri and currently optimized for desktop usage (Windows-f
 
 * 📊 **Dashboard analytics**: KPI cards, top categories, and monthly income/expense chart with tooltip details.
 
-* 🧮 **Yearly reports**: Monthly yearly summary and CSV export.
+* 🧮 **Yearly reports**: Monthly yearly summary plus year-over-year comparison (selected year vs. previous year), and flexible export content: yearly summary, year comparison, all bookings in a selected year, or all bookings in a selected month (CSV, XLSX, PDF with Save dialog). Export feedback is shown as toast notifications. CSV includes metadata and totals.
 
 * 🔎 **Live filters**: Filter by month, year, type, category, account, and text with quick reset.
 
@@ -130,7 +130,7 @@ npx tauri dev
 
 6. 📊 **View dashboard** for KPI and monthly chart.
 
-7. 📁 **Use yearly report + CSV export** in `Auswertung`.
+7. 📁 **Use report export** in `Auswertung`: choose year (report updates automatically on blur/Enter), export content (Jahresübersicht / Jahresvergleich / Jahresbuchungen / Monatsbuchungen), and format (PDF / XLSX / CSV).
 
 8. 🔄 **Configure sync folder** in `Synchronisierung` for optional cross-device workflow.
 
@@ -225,7 +225,4 @@ The full license is available in the [LICENSE](LICENSE) file.
 
 * * *
 
-📌 Roadmap
-----------
-
-All open and completed tasks are tracked in [TODO.md](TODO.md).
+<div align="center"> <sub>Created with ❤️ by Daniel Sichler</sub> </div>

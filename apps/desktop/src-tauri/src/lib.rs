@@ -1,3 +1,4 @@
+use base64::Engine as _;
 use rusqlite::{params, Connection, ErrorCode, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -127,6 +128,17 @@ fn sanitize_csv_filename(name: &str) -> String {
     trimmed
   } else {
     format!("{trimmed}.csv")
+  }
+}
+
+fn sanitize_report_filename(name: &str, default_ext: &str) -> String {
+  let trimmed = sanitize_filename_stem(name);
+  if trimmed.is_empty() {
+    format!("auswertung.{default_ext}")
+  } else if Path::new(&trimmed).extension().is_some() {
+    trimmed
+  } else {
+    format!("{trimmed}.{default_ext}")
   }
 }
 
@@ -446,14 +458,55 @@ fn sync_restore_latest(db: State<AppDb>) -> Result<String, String> {
 
 #[tauri::command]
 fn write_report_csv(filename: String, content: String) -> Result<String, String> {
-  let mut target = dirs::download_dir()
-    .or_else(dirs::document_dir)
-    .ok_or_else(|| "Kein Download- oder Dokumente-Ordner gefunden.".to_string())?;
-
   let safe_name = sanitize_csv_filename(&filename);
-  target.push(safe_name);
+
+  let picked = rfd::FileDialog::new()
+    .set_title("CSV speichern")
+    .set_file_name(&safe_name)
+    .add_filter("CSV", &["csv"])
+    .save_file();
+
+  let target = if let Some(path) = picked {
+    path
+  } else {
+    return Err("EXPORT_CANCELED".to_string());
+  };
 
   std::fs::write(&target, content).map_err(|e| format!("Datei konnte nicht geschrieben werden: {e}"))?;
+
+  Ok(target.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn write_report_binary(filename: String, content_base64: String) -> Result<String, String> {
+  let safe_name = sanitize_report_filename(&filename, "bin");
+  let ext = Path::new(&safe_name)
+    .extension()
+    .and_then(|e| e.to_str())
+    .unwrap_or("")
+    .to_lowercase();
+
+  let mut dialog = rfd::FileDialog::new()
+    .set_title("Export speichern")
+    .set_file_name(&safe_name);
+
+  if ext == "xlsx" {
+    dialog = dialog.add_filter("Excel", &["xlsx"]);
+  } else if ext == "pdf" {
+    dialog = dialog.add_filter("PDF", &["pdf"]);
+  }
+
+  let target = if let Some(path) = dialog.save_file() {
+    path
+  } else {
+    return Err("EXPORT_CANCELED".to_string());
+  };
+
+  let bytes = base64::engine::general_purpose::STANDARD
+    .decode(content_base64)
+    .map_err(|e| format!("Exportinhalt konnte nicht decodiert werden: {e}"))?;
+
+  std::fs::write(&target, bytes).map_err(|e| format!("Datei konnte nicht geschrieben werden: {e}"))?;
 
   Ok(target.to_string_lossy().to_string())
 }
@@ -489,7 +542,8 @@ pub fn run() {
       sync_set_folder,
       sync_write_backup,
       sync_restore_latest,
-      write_report_csv
+      write_report_csv,
+      write_report_binary
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

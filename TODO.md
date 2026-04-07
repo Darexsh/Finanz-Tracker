@@ -31,6 +31,8 @@
 
 ## 4. UX und Bedienung
 
+- [x] In Auswertung: automatisches Aktualisieren bei Jahreswechsel (on blur/Enter), kein separater "Auswertung laden"-Button mehr.
+- [x] Export-Rückmeldungen als Toast statt Dialog (Erfolg/Fehler/Abbruch).
 - [x] Dashboard um eine Graphen-Darstellung wie in der früheren GUI erweitern (Monatsverlauf/Balkenchart).
 - [x] Dialogsystem weiter verbessern (validierungsnahe Hinweise, Success-Feedback als Toast).
 - [x] Tabellen-Usability verbessern (Doppelklick lädt Buchung, Mehrfachauswahl, klare Auswahlzustände).
@@ -43,11 +45,11 @@
 
 ## 5. Reports und Export
 
-- [ ] CSV-Export mit Zielpfad-Auswahl (statt nur Downloads/Dokumente-Fallback).
-- [ ] Exportformate erweitern (XLSX, PDF).
-- [ ] Jahresvergleich (aktuelles Jahr vs. Vorjahr).
-- [ ] Budget-vs-Ist-Bericht pro Kategorie.
-- [ ] Wiederkehrende Ausgaben separat auswerten.
+- [x] Jahresvergleich als Export-Inhalt (CSV/XLSX/PDF).
+- [x] CSV-Export mit Zielpfad-Auswahl (statt nur Downloads/Dokumente-Fallback).
+- [x] Exportformate erweitern (XLSX, PDF).
+- [x] Export-Inhalt erweitern: Jahresübersicht sowie vollständige Buchungslisten für einzelnes Jahr oder einzelnen Monat (CSV/XLSX/PDF).
+- [x] Jahresvergleich (aktuelles Jahr vs. Vorjahr).
 
 ## 6. Performance
 
