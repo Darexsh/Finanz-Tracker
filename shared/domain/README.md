@@ -1,9 +1,15 @@
-# domain
+# Shared Domain
 
-Gemeinsame Fachlogik.
+Cross-platform business logic.
 
-Beispiele:
-- Datenmodelle
-- Validierungsregeln
-- Kategorisierungslogik
-- Berechnungen für Reports/Dashboard
+## Typical Contents
+- Data models
+- Validation rules
+- Category classification rules
+- Dashboard/report calculations
+
+## Current Status
+- Planned extraction target
+
+## Next Step
+- Move reusable financial calculations and validation from desktop into this module

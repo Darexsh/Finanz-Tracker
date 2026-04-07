@@ -1,8 +1,14 @@
-# utils
+# Shared Utils
 
-Gemeinsame Hilfsfunktionen.
+Cross-platform utility helpers.
 
-Beispiele:
-- Datums-/Format-Helfer
-- String-/Parsing-Helfer
-- Kleine technische Utility-Funktionen
+## Typical Contents
+- Date/format helpers
+- Parsing helpers
+- Lightweight technical utilities
+
+## Current Status
+- Planned extraction target
+
+## Next Step
+- Move generic helper functions from desktop app where reuse is clear

@@ -1,7 +1,15 @@
-# shared
+# Shared Modules
 
-Gemeinsame Module für Desktop und mobile App.
+Shared modules intended for both desktop and mobile apps.
 
-Ziel:
-- Fachlogik nur einmal implementieren
-- Konsistente Validierung und Regeln über beide Plattformen
+## Goal
+- Implement core business logic once
+- Keep validation and financial rules consistent across platforms
+
+## Structure
+- `domain/`: business/domain logic
+- `utils/`: generic helpers
+
+## Current Status
+- Folder scaffolding is in place
+- Main logic still lives in desktop app and can be extracted incrementally
