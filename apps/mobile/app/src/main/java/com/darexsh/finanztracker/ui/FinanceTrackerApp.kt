@@ -41,7 +41,9 @@ fun FinanceTrackerApp(
         account: String,
         note: String,
         taxDeclaration: Boolean
-    ) -> Unit
+    ) -> Unit,
+    onSyncFolderSelected: (String) -> Unit,
+    onSyncFolderCleared: () -> Unit
 ) {
     val tabs = listOf(
         TabItem(stringResource(R.string.tab_overview), Icons.Outlined.Dashboard),
@@ -70,7 +72,11 @@ fun FinanceTrackerApp(
                 0 -> DashboardScreen(state = state)
                 1 -> BookingsScreen(state = state, onAddBooking = onAddBooking)
                 2 -> ReportsScreen(state = state)
-                else -> SyncScreen()
+                else -> SyncScreen(
+                    syncFolderUri = state.syncFolderUri,
+                    onSyncFolderSelected = onSyncFolderSelected,
+                    onSyncFolderCleared = onSyncFolderCleared
+                )
             }
         }
     }

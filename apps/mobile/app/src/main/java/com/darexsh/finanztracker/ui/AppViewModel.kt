@@ -24,6 +24,10 @@ class AppViewModel(
     private val _state = MutableStateFlow(repository.loadState())
     val state: StateFlow<TrackerState> = _state.asStateFlow()
 
+    init {
+        autoLoadFromSyncOnStart()
+    }
+
     fun addBooking(
         description: String,
         amount: Double,
@@ -58,10 +62,48 @@ class AppViewModel(
         updateState(current.copy(activeUserId = userId))
     }
 
-    private fun updateState(newState: TrackerState) {
+    fun setSyncFolderUri(uri: String) {
+        val current = _state.value
+        updateState(current.copy(syncFolderUri = uri), writeSyncFile = false)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val synced = repository.loadSyncState(uri)
+            if (synced != null) {
+                val merged = synced.copy(syncFolderUri = uri)
+                _state.value = merged
+                repository.saveState(merged)
+            }
+            // Important safety rule:
+            // Do not write anything on folder selection when loading fails or file is absent.
+            // First write should happen only after an explicit data change in app.
+        }
+    }
+
+    fun clearSyncFolderUri() {
+        val current = _state.value
+        updateState(current.copy(syncFolderUri = null), writeSyncFile = false)
+    }
+
+    private fun autoLoadFromSyncOnStart() {
+        val syncUri = _state.value.syncFolderUri ?: return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val synced = repository.loadSyncState(syncUri) ?: return@launch
+            val merged = synced.copy(syncFolderUri = syncUri)
+            _state.value = merged
+            repository.saveState(merged)
+        }
+    }
+
+    private fun updateState(newState: TrackerState, writeSyncFile: Boolean = true) {
         _state.value = newState
         viewModelScope.launch(Dispatchers.IO) {
             repository.saveState(newState)
+
+            val syncUri = newState.syncFolderUri
+            if (writeSyncFile && !syncUri.isNullOrBlank()) {
+                repository.saveSyncState(syncUri, newState)
+            }
         }
     }
 

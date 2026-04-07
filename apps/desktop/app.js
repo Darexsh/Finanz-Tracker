@@ -139,6 +139,9 @@ let selectedBookingId = null;
 let recoveryNotice = null;
 let syncConfigured = false;
 let syncAutoBackupTimer = null;
+let syncAutoRestoreTimer = null;
+let lastSyncPayloadSnapshot = null;
+let skipNextSyncBackupWrite = false;
 const selectedBookingIds = new Set();
 const monthlyChartState = { bars: [], rows: [], year: null, hoverIndex: -1, pinnedIndex: null };
 const BOOKING_RENDER_INITIAL = 250;
@@ -242,7 +245,7 @@ async function init() {
   await flushRecoveryNotice();
   updateSyncMetaDisplay();
   await refreshSyncStatus();
-  await tryAutoRestoreFromSync();
+  await tryAutoRestoreFromSyncWithStartupRetry();
 }
 
 function defaultUser() {
@@ -268,6 +271,27 @@ function sanitizeLoadedState(loaded) {
 
   const activeUserId = users.some(u => u.id === loaded.activeUserId) ? loaded.activeUserId : users[0].id;
   return { users, activeUserId, bookings, customCategories };
+}
+
+function applyLoadedStateToUi(loadedState, options = {}) {
+  const { keepMonth = true } = options;
+
+  Object.assign(state, sanitizeLoadedState(loadedState));
+  stateDataVersion += 1;
+  resetPerfCache();
+
+  bookingRenderState.key = "";
+  bookingRenderState.visibleCount = BOOKING_RENDER_INITIAL;
+  monthlyChartState.bars = [];
+  monthlyChartState.rows = [];
+  monthlyChartState.hoverIndex = -1;
+  monthlyChartState.pinnedIndex = null;
+
+  ensureActiveUser();
+  selectedBookingId = null;
+  selectedBookingIds.clear();
+  clearForm(keepMonth);
+  render();
 }
 
 async function hydrateStateFromStorage() {
@@ -996,11 +1020,7 @@ function bindEvents() {
       }
 
       const parsed = JSON.parse(raw);
-      Object.assign(state, sanitizeLoadedState(parsed));
-      selectedBookingId = null;
-      selectedBookingIds.clear();
-      clearForm(true);
-      render();
+      applyLoadedStateToUi(parsed, { keepMonth: true });
       markSyncRestoreSuccess();
       saveState();
 
@@ -2880,28 +2900,58 @@ function markSyncRestoreSuccess() {
   updateSyncMetaDisplay();
 }
 
-async function tryAutoRestoreFromSync() {
-  if (!hasTauriRuntime() || !syncConfigured) return;
+async function tryAutoRestoreFromSync(quiet = false) {
+  if (!hasTauriRuntime() || !syncConfigured) return false;
 
   try {
     const raw = await tryInvokeTauriCommand("sync_restore_latest", {});
-    if (!raw || typeof raw !== "string") return;
+    if (!raw || typeof raw !== "string") return false;
+    if (raw === lastSyncPayloadSnapshot) return false;
 
     const parsed = JSON.parse(raw);
-    Object.assign(state, sanitizeLoadedState(parsed));
-    ensureActiveUser();
-    selectedBookingId = null;
-    selectedBookingIds.clear();
-    clearForm(true);
-    render();
+    applyLoadedStateToUi(parsed, { keepMonth: true });
     markSyncRestoreSuccess();
+    lastSyncPayloadSnapshot = raw;
+    skipNextSyncBackupWrite = true;
     await persistState();
+    return true;
   } catch (err) {
-    console.warn("Auto-Restore aus Sync-Ordner übersprungen", err);
+    if (!quiet) {
+      console.warn("Auto-Restore aus Sync-Ordner übersprungen", err);
+    }
+    return false;
   }
 }
 
+async function tryAutoRestoreFromSyncWithStartupRetry() {
+  // Folder sync tools may deliver the file a few moments after app start.
+  // Retry briefly on startup so users do not need a second app launch.
+  const maxAttempts = 20;
+  const retryDelayMs = 1000;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const restored = await tryAutoRestoreFromSync();
+    if (restored) return true;
+    if (attempt < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+    }
+  }
+
+  // Some sync providers deliver late; do one extra delayed pass without requiring app restart.
+  setTimeout(() => {
+    tryAutoRestoreFromSync().catch(err => {
+      console.warn("Verzögerter Auto-Restore fehlgeschlagen", err);
+    });
+  }, 15000);
+  return false;
+}
+
 function scheduleSyncAutoBackup(payload) {
+  if (skipNextSyncBackupWrite) {
+    skipNextSyncBackupWrite = false;
+    return;
+  }
+
   if (!hasTauriRuntime() || !syncConfigured) return;
 
   if (syncAutoBackupTimer) clearTimeout(syncAutoBackupTimer);
@@ -2909,11 +2959,28 @@ function scheduleSyncAutoBackup(payload) {
     syncAutoBackupTimer = null;
     try {
       await tryInvokeTauriCommand("sync_write_backup", { payload });
+      lastSyncPayloadSnapshot = payload;
       markSyncWriteSuccess();
     } catch (err) {
       console.warn("Automatisches Sync-Backup fehlgeschlagen", err);
     }
   }, 300);
+}
+
+function refreshSyncAutoRestoreTimer() {
+  if (syncAutoRestoreTimer) {
+    clearInterval(syncAutoRestoreTimer);
+    syncAutoRestoreTimer = null;
+  }
+
+  if (!hasTauriRuntime() || !syncConfigured) return;
+
+  // Keep desktop UI fresh while app stays open (no manual F5 needed).
+  syncAutoRestoreTimer = setInterval(() => {
+    tryAutoRestoreFromSync(true).catch(err => {
+      console.warn("Hintergrund-Sync-Restore fehlgeschlagen", err);
+    });
+  }, 5000);
 }
 
 async function refreshSyncStatus() {
@@ -2922,6 +2989,7 @@ async function refreshSyncStatus() {
   const hasDesktop = hasTauriRuntime();
   if (!hasDesktop) {
     syncConfigured = false;
+    refreshSyncAutoRestoreTimer();
     setSyncStatus("Sync: nur in Desktop (Tauri) verfügbar");
     return;
   }
@@ -2930,6 +2998,7 @@ async function refreshSyncStatus() {
     const status = await tryInvokeTauriCommand("sync_get_status", {});
     if (!status) {
       syncConfigured = false;
+      refreshSyncAutoRestoreTimer();
       setSyncStatus("Sync: Status nicht verfügbar");
       return;
     }
@@ -2940,14 +3009,17 @@ async function refreshSyncStatus() {
 
     if (!status.configured) {
       syncConfigured = false;
+      refreshSyncAutoRestoreTimer();
       setSyncStatus("Sync: nicht konfiguriert");
       return;
     }
 
     syncConfigured = true;
+    refreshSyncAutoRestoreTimer();
     setSyncStatus("Sync: aktiv -> " + status.folder_path);
   } catch (err) {
     syncConfigured = false;
+    refreshSyncAutoRestoreTimer();
     setSyncStatus("Sync: Statusfehler");
     console.warn("Sync-Status konnte nicht geladen werden", err);
   }

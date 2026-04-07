@@ -44,7 +44,7 @@ This project is an independent personal/open-source finance tracker.
 
 **Finanz Tracker** is a desktop app to manage personal finances with multiple separated user profiles, fast booking workflows, dashboard insights, yearly reports, and optional cross-device sync via a local sync folder.
 
-The app is built with Tauri for desktop and now includes an Android project scaffold (Kotlin + Compose) for the next implementation phase.
+The app is built with Tauri for desktop and includes an Android app (Kotlin + Compose) with SAF-based sync folder selection plus sync-file auto-load/auto-save groundwork.
 
 * * *
 
@@ -107,6 +107,8 @@ npm run prepare:dist
 npm run tauri:dev
 ```
 
+`tauri:dev` now runs `prepare:dist` automatically first, so the app always starts with the latest frontend changes.
+
 Alternative:
 
 ```bash
@@ -145,6 +147,10 @@ The app intentionally uses a **folder-based sync model**.
 - You select a local sync folder once.
 - The app reads/writes `finanz-tracker-sync-latest.json` there.
 - External tools sync that folder between devices.
+- Desktop app performs a short startup retry for sync-restore to handle delayed folder-sync arrival.
+- While running, desktop also checks sync updates in the background so changes appear without manual refresh.
+- Desktop invalidates render caches and reapplies full UI state on sync-restore so loaded changes are shown immediately without manual F5.
+- After sync-restore, desktop skips one immediate sync write-back to reduce timestamp churn/conflicts with external folder sync tools.
 
 Typical setup:
 

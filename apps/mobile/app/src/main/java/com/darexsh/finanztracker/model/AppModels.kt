@@ -34,7 +34,8 @@ data class TrackerState(
     val users: List<TrackerUser>,
     val activeUserId: String,
     val bookings: List<Booking>,
-    val customCategories: List<String>
+    val customCategories: List<String>,
+    val syncFolderUri: String? = null
 )
 
 fun defaultState(): TrackerState {
@@ -43,6 +44,7 @@ fun defaultState(): TrackerState {
         users = listOf(user),
         activeUserId = user.id,
         bookings = emptyList(),
-        customCategories = emptyList()
+        customCategories = emptyList(),
+        syncFolderUri = null
     )
 }

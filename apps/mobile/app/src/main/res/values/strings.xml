@@ -40,6 +40,15 @@
     <string name="report_expense">Expense</string>
     <string name="report_balance">Balance</string>
 
-    <string name="sync_info_1">Folder-based synchronization is prepared for the Android phase.</string>
-    <string name="sync_info_2">Next step: folder picker + read/write of finanz-tracker-sync-latest.json via SAF.</string>
+    <string name="sync_info_1">Folder-based synchronization is available for Android.</string>
+    <string name="sync_info_2">Pick a sync folder once. The app stores persistent folder access via SAF.</string>
+    <string name="sync_folder_not_set">No sync folder selected yet.</string>
+    <string name="sync_folder_set_label">Selected sync folder:</string>
+    <string name="sync_folder_select_button">Select folder</string>
+    <string name="sync_folder_change_button">Change folder</string>
+    <string name="sync_folder_clear_button">Clear folder</string>
+    <string name="sync_folder_saved_toast">Sync folder saved.</string>
+    <string name="sync_folder_cleared_toast">Sync folder cleared.</string>
+    <string name="sync_folder_permission_failed">Folder permission could not be saved persistently.</string>
+    <string name="sync_volume_internal">Internal storage</string>
 </resources>

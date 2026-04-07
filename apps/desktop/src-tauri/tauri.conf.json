@@ -5,7 +5,8 @@
   "identifier": "com.localai.finanztracker",
   "build": {
     "frontendDist": "../web-dist",
-    "beforeBuildCommand": "npm run prepare:dist"
+    "beforeBuildCommand": "npm run prepare:dist",
+    "beforeDevCommand": "npm run prepare:dist"
   },
   "app": {
     "windows": [

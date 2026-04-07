@@ -40,6 +40,15 @@
     <string name="report_expense">Ausgaben</string>
     <string name="report_balance">Saldo</string>
 
-    <string name="sync_info_1">Die ordnerbasierte Synchronisierung ist für die Android-Phase vorbereitet.</string>
-    <string name="sync_info_2">Nächster Schritt: Ordnerauswahl + Lesen/Schreiben von finanz-tracker-sync-latest.json über SAF.</string>
+    <string name="sync_info_1">Ordnerbasierte Synchronisierung ist auf Android verfügbar.</string>
+    <string name="sync_info_2">Wähle den Sync-Ordner einmal aus. Die App speichert den Zugriff dauerhaft über SAF.</string>
+    <string name="sync_folder_not_set">Noch kein Sync-Ordner ausgewählt.</string>
+    <string name="sync_folder_set_label">Ausgewählter Sync-Ordner:</string>
+    <string name="sync_folder_select_button">Ordner auswählen</string>
+    <string name="sync_folder_change_button">Ordner ändern</string>
+    <string name="sync_folder_clear_button">Ordner entfernen</string>
+    <string name="sync_folder_saved_toast">Sync-Ordner gespeichert.</string>
+    <string name="sync_folder_cleared_toast">Sync-Ordner entfernt.</string>
+    <string name="sync_folder_permission_failed">Ordner-Berechtigung konnte nicht dauerhaft gespeichert werden.</string>
+    <string name="sync_volume_internal">Interner Speicher</string>
 </resources>

@@ -23,7 +23,9 @@ class MainActivity : ComponentActivity() {
                 val state = viewModel.state.collectAsState().value
                 FinanceTrackerApp(
                     state = state,
-                    onAddBooking = viewModel::addBooking
+                    onAddBooking = viewModel::addBooking,
+                    onSyncFolderSelected = viewModel::setSyncFolderUri,
+                    onSyncFolderCleared = viewModel::clearSyncFolderUri
                 )
             }
         }
