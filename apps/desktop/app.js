@@ -149,6 +149,7 @@ const el = {
   topCategories: document.getElementById("topCategories"),
   monthlyChart: document.getElementById("monthlyChart"),
   monthlyChartTooltip: document.getElementById("monthlyChartTooltip"),
+  monthlyChartEmpty: document.getElementById("monthlyChartEmpty"),
   dashboardYearSelect: document.getElementById("dashboardYearSelect"),
 
   bookingForm: document.getElementById("bookingForm"),
@@ -162,6 +163,7 @@ const el = {
   typeInput: document.getElementById("typeInput"),
   accountInput: document.getElementById("accountInput"),
   noteInput: document.getElementById("noteInput"),
+  taxDeclarationInput: document.getElementById("taxDeclarationInput"),
 
   fMonth: document.getElementById("fMonth"),
   fYear: document.getElementById("fYear"),
@@ -195,8 +197,12 @@ const el = {
   dialogMessage: document.getElementById("dialogMessage"),
   dialogInput: document.getElementById("dialogInput"),
   dialogOkBtn: document.getElementById("dialogOkBtn"),
-  dialogCancelBtn: document.getElementById("dialogCancelBtn")
+  dialogCancelBtn: document.getElementById("dialogCancelBtn"),
+
+  toastContainer: document.getElementById("toastContainer")
 };
+
+const BOOKING_VALIDATION_FIELDS = ["monthInput", "descriptionInput", "amountInput"];
 
 init().catch(err => {
   console.error("Init fehlgeschlagen", err);
@@ -204,6 +210,7 @@ init().catch(err => {
 
 async function init() {
   bindTabs();
+  initBookingFormErrorSlots();
   initSelectOptions();
   bindEvents();
   await hydrateStateFromStorage();
@@ -226,6 +233,7 @@ function createDefaultState() {
   const user = defaultUser();
   return { users: [user], activeUserId: user.id, bookings: [], customCategories: [] };
 }
+
 
 function sanitizeLoadedState(loaded) {
   if (!loaded || typeof loaded !== "object") return createDefaultState();
@@ -429,6 +437,64 @@ function setDefaultReportYear() {
   el.reportYearInput.value = String(new Date().getFullYear());
 }
 
+function initBookingFormErrorSlots() {
+  if (!el.bookingForm) return;
+  el.bookingForm.querySelectorAll("label").forEach(label => {
+    if (!label.querySelector(".field-error")) {
+      const node = document.createElement("div");
+      node.className = "field-error";
+      label.appendChild(node);
+    }
+  });
+}
+
+function ensureFieldErrorNode(inputEl) {
+  if (!inputEl) return null;
+  const label = inputEl.closest("label");
+  if (!label) return null;
+
+  let node = label.querySelector(".field-error");
+  if (!node) {
+    node = document.createElement("div");
+    node.className = "field-error";
+    node.textContent = "";
+    label.appendChild(node);
+  }
+  return node;
+}
+
+function setFieldError(inputEl, message) {
+  if (!inputEl) return;
+  const node = ensureFieldErrorNode(inputEl);
+  inputEl.classList.add("invalid-field");
+  inputEl.style.setProperty("border-color", "#dc2626", "important");
+  inputEl.style.setProperty("background", "#fff6f6", "important");
+  inputEl.style.setProperty("box-shadow", "0 0 0 3px rgba(220, 38, 38, 0.18)", "important");
+  inputEl.style.setProperty("outline", "none", "important");
+  if (node) {
+    node.textContent = message || "";
+    node.classList.toggle("has-error", Boolean(message));
+  }
+}
+
+function clearFieldError(inputEl) {
+  if (!inputEl) return;
+  const node = ensureFieldErrorNode(inputEl);
+  inputEl.classList.remove("invalid-field");
+  inputEl.style.removeProperty("border-color");
+  inputEl.style.removeProperty("background");
+  inputEl.style.removeProperty("box-shadow");
+  inputEl.style.removeProperty("outline");
+  if (node) {
+    node.textContent = "";
+    node.classList.remove("has-error");
+  }
+}
+
+function clearBookingFormErrors() {
+  BOOKING_VALIDATION_FIELDS.forEach(key => clearFieldError(el[key]));
+}
+
 function initSelectOptions() {
   refreshCategoryOptions(false);
   fillSelect(el.accountInput, ACCOUNTS);
@@ -475,6 +541,16 @@ function refreshCategoryOptions(keepSelection = true) {
   }
 }
 
+function resetFilters() {
+  el.fMonth.value = "Alle";
+  el.fYear.value = "Alle";
+  el.fType.value = "Alle";
+  el.fCategory.value = "Alle";
+  el.fAccount.value = "Alle";
+  el.fSearch.value = "";
+}
+
+
 function bindTabs() {
   document.querySelectorAll(".tab").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -512,6 +588,7 @@ function bindEvents() {
     clearForm(true);
     saveState();
     render();
+    showToast("Benutzer angelegt.", "success");
   });
 
   el.renameUserBtn.addEventListener("click", async () => {
@@ -532,6 +609,7 @@ function bindEvents() {
     user.name = trimmed;
     saveState();
     renderUsers();
+    showToast("Benutzer umbenannt.", "success");
   });
 
   el.deleteUserBtn.addEventListener("click", async () => {
@@ -559,7 +637,7 @@ function bindEvents() {
     clearForm(true);
     saveState();
     render();
-    await showInfo(`'${user.name}' wurde gelöscht.`);
+    showToast(`'${user.name}' wurde gelöscht.`, "success");
   });
 
   el.descriptionInput.addEventListener("input", () => {
@@ -574,6 +652,10 @@ function bindEvents() {
 
   el.categoryInput.addEventListener("change", () => {
     if (el.categoryInput.value !== lastAutoCategory) categoryManuallyOverridden = true;
+  });
+
+  [el.monthInput, el.descriptionInput, el.amountInput].forEach(input => {
+    input.addEventListener("input", () => clearFieldError(input));
   });
 
   el.addCategoryBtn.addEventListener("click", async () => {
@@ -597,6 +679,7 @@ function bindEvents() {
     el.categoryInput.value = trimmed;
     saveState();
     render();
+    showToast("Kategorie angelegt.", "success");
   });
 
   el.renameCategoryBtn.addEventListener("click", async () => {
@@ -637,6 +720,7 @@ function bindEvents() {
     el.categoryInput.value = normalizeCategory(trimmed, state.customCategories);
     saveState();
     render();
+    showToast("Kategorie umbenannt.", "success");
   });
 
   el.deleteCategoryBtn.addEventListener("click", async () => {
@@ -668,6 +752,7 @@ function bindEvents() {
     refreshCategoryOptions(true);
     saveState();
     render();
+    showToast("Kategorie gelöscht.", "success");
   });
 
   el.bookingForm.addEventListener("submit", async e => {
@@ -675,10 +760,13 @@ function bindEvents() {
     const payload = await validateBookingForm();
     if (!payload) return;
 
+    let updated = false;
+
     if (selectedBookingId) {
       const idx = state.bookings.findIndex(b => b.id === selectedBookingId && b.userId === activeUser().id);
       if (idx >= 0) {
         state.bookings[idx] = { ...state.bookings[idx], ...payload };
+        updated = true;
       } else {
         state.bookings.push({ id: uid(), userId: activeUser().id, createdAt: Date.now(), ...payload });
       }
@@ -690,12 +778,14 @@ function bindEvents() {
     selectedBookingId = null;
     clearForm(true);
     render();
+    showToast(updated ? "Buchung aktualisiert." : "Buchung gespeichert.", "success");
   });
 
   el.bookingForm.addEventListener("reset", e => {
     e.preventDefault();
     selectedBookingId = null;
     clearForm(false);
+    clearBookingFormErrors();
     renderBookings();
   });
 
@@ -718,6 +808,7 @@ function bindEvents() {
     selectedBookingId = null;
     saveState();
     render();
+    showToast(ids.length + " Buchung(en) gelöscht.", "success");
   });
 
   el.selectAllBookings.addEventListener("change", () => {
@@ -739,12 +830,7 @@ function bindEvents() {
   [el.fMonth, el.fYear, el.fType, el.fCategory, el.fAccount, el.fSearch].forEach(i => i.addEventListener("input", renderBookings));
   el.resetFiltersBtn.addEventListener("click", e => {
     e.preventDefault();
-    el.fMonth.value = "Alle";
-    el.fYear.value = "Alle";
-    el.fType.value = "Alle";
-    el.fCategory.value = "Alle";
-    el.fAccount.value = "Alle";
-    el.fSearch.value = "";
+    resetFilters();
     renderBookings();
   });
 
@@ -855,6 +941,16 @@ function bindEvents() {
 
   el.exportReportBtn.addEventListener("click", async () => {
     await exportReportCsv();
+  });
+
+  document.addEventListener("click", evt => {
+    if (!selectedBookingId) return;
+    const target = evt.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('#bookingsBody tr[data-id]')) return;
+    if (target.closest('#bookingForm')) return;
+    selectedBookingId = null;
+    renderBookings();
   });
 }
 
@@ -1003,21 +1099,26 @@ function suggestCategory(description) {
 }
 
 async function validateBookingForm() {
+  clearBookingFormErrors();
+
   const month = parseMonth(el.monthInput.value);
   if (!month) {
-    await showInfo("Bitte Datum als TT.MM.JJJJ eingeben.");
+    setFieldError(el.monthInput, "Bitte Datum als TT.MM.JJJJ eingeben.");
+    el.monthInput.focus();
     return null;
   }
 
   const description = el.descriptionInput.value.trim();
   if (!description) {
-    await showInfo("Bitte eine Beschreibung eingeben.");
+    setFieldError(el.descriptionInput, "Bitte eine Beschreibung eingeben.");
+    el.descriptionInput.focus();
     return null;
   }
 
   const amount = parseFloat(String(el.amountInput.value).replace(",", "."));
   if (Number.isNaN(amount) || amount < 0) {
-    await showInfo("Ungültiger Betrag.");
+    setFieldError(el.amountInput, "Bitte einen gültigen Betrag eingeben.");
+    el.amountInput.focus();
     return null;
   }
 
@@ -1028,7 +1129,8 @@ async function validateBookingForm() {
     txType: ["Ausgabe", "Einnahme"].includes(el.typeInput.value) ? el.typeInput.value : "Ausgabe",
     amount,
     account: el.accountInput.value || "Girokonto",
-    note: el.noteInput.value.trim()
+    note: el.noteInput.value.trim(),
+    taxDeclaration: Boolean(el.taxDeclarationInput.checked)
   };
 }
 
@@ -1041,7 +1143,9 @@ function clearForm(keepMonth = true) {
   el.typeInput.value = "Ausgabe";
   el.accountInput.value = "Girokonto";
   el.noteInput.value = "";
+  el.taxDeclarationInput.checked = false;
   if (!keepMonth) setDefaultMonth();
+  clearBookingFormErrors();
 }
 
 function loadEntryIntoForm(entry) {
@@ -1052,6 +1156,7 @@ function loadEntryIntoForm(entry) {
   el.amountInput.value = String(entry.amount).replace(".", ",");
   el.accountInput.value = entry.account || "Girokonto";
   el.noteInput.value = entry.note || "";
+  el.taxDeclarationInput.checked = Boolean(entry.taxDeclaration);
   lastAutoCategory = normalizeCategory(entry.category, state.customCategories);
   categoryManuallyOverridden = true;
 }
@@ -1094,6 +1199,34 @@ function filteredBookings() {
     if (s && !(b.description.toLowerCase().includes(s) || (b.note || "").toLowerCase().includes(s))) return false;
     return true;
   });
+}
+
+function emptyStateHtml(title, message) {
+  return `<div class="empty-state"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(message)}</p></div>`;
+}
+
+function updateMonthlyChartEmptyState(entries, year) {
+  const holder = el.monthlyChartEmpty;
+  if (!holder) return;
+
+  const hasAnyBookings = entries.length > 0;
+  const hasYearData = monthlyCashflowRows(entries, year).some(row => row.income > 0 || row.expense > 0);
+
+  if (hasYearData) {
+    holder.classList.add("hidden");
+    holder.innerHTML = "";
+    return;
+  }
+
+  const title = hasAnyBookings
+    ? `Für ${year} sind noch keine Buchungen vorhanden`
+    : "Noch keine Buchungen vorhanden";
+  const message = hasAnyBookings
+    ? "Wähle ein anderes Jahr oder erfasse eine neue Buchung."
+    : "Lege oben deine erste Buchung an, um den Monatsverlauf zu sehen.";
+
+  holder.innerHTML = emptyStateHtml(title, message);
+  holder.classList.remove("hidden");
 }
 
 function render() {
@@ -1170,9 +1303,10 @@ function renderDashboard() {
   const top = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 10);
   el.topCategories.innerHTML = top.length
     ? top.map(([k, v]) => `<li>${k}: ${euro(v)}</li>`).join("")
-    : "<li>Keine Ausgaben im aktuellen Monat</li>";
+    : "<li>Keine Ausgaben im aktuellen Monat. Erfasse eine Ausgabe, um Kategorien zu sehen.</li>";
 
   const selectedYear = syncDashboardYearSelect(entries);
+  updateMonthlyChartEmptyState(entries, selectedYear);
   renderMonthlyCashflowChart(entries, selectedYear);
 }
 
@@ -1463,10 +1597,22 @@ function renderBookings() {
     if (!visibleIds.has(id)) selectedBookingIds.delete(id);
   });
 
-  el.bookingsBody.innerHTML = entries.map(e => {
-    const rowClass = e.id === selectedBookingId ? "selected-row" : "";
-    const checked = selectedBookingIds.has(e.id) ? "checked" : "";
-    return `
+  const hasAnyBookings = userBookings().length > 0;
+
+  if (!entries.length) {
+    const title = hasAnyBookings ? "Keine Buchungen für den aktuellen Filter" : "Noch keine Buchungen vorhanden";
+    const message = hasAnyBookings
+      ? "Passe die Filter an oder nutze Reset, um wieder Einträge anzuzeigen."
+      : "Erfasse oben deine erste Buchung mit Datum, Beschreibung und Betrag.";
+    el.bookingsBody.innerHTML = `<tr class="empty-row"><td colspan="9">${emptyStateHtml(title, message)}</td></tr>`;
+  } else {
+    el.bookingsBody.innerHTML = entries.map(e => {
+      const rowClasses = [];
+      if (Boolean(e.taxDeclaration)) rowClasses.push("tax-row");
+      if (e.id === selectedBookingId) rowClasses.push("selected-row");
+      const rowClass = rowClasses.join(" ");
+      const checked = selectedBookingIds.has(e.id) ? "checked" : "";
+      return `
     <tr class="${rowClass}" data-id="${e.id}">
       <td class="check-col"><input type="checkbox" class="booking-check" data-id="${e.id}" ${checked} /></td>
       <td>${e.month}</td>
@@ -1476,9 +1622,11 @@ function renderBookings() {
       <td>${euro(e.amount)}</td>
       <td>${e.account}</td>
       <td>${escapeHtml(e.note || "")}</td>
+      <td class="check-col"><input type="checkbox" class="tax-check" data-id="${e.id}" ${e.taxDeclaration ? "checked" : ""} aria-label="Für Steuererklärung markieren" /></td>
     </tr>
   `;
-  }).join("");
+    }).join("");
+  }
 
   if (el.selectedBookingsInfo) {
     el.selectedBookingsInfo.textContent = `${selectedBookingIds.size} ausgewählt`;
@@ -1501,14 +1649,32 @@ function renderBookings() {
     });
   });
 
+  el.bookingsBody.querySelectorAll("input.tax-check").forEach(box => {
+    box.addEventListener("click", evt => evt.stopPropagation());
+    box.addEventListener("change", () => {
+      const id = box.dataset.id;
+      if (!id) return;
+      const idx = state.bookings.findIndex(b => b.id === id && b.userId === activeUser().id);
+      if (idx < 0) return;
+      state.bookings[idx] = { ...state.bookings[idx], taxDeclaration: Boolean(box.checked) };
+      if (selectedBookingId === id) {
+        el.taxDeclarationInput.checked = Boolean(box.checked);
+      }
+      saveState();
+      renderBookings();
+    });
+  });
+
   el.bookingsBody.querySelectorAll("tr").forEach(row => {
     row.addEventListener("click", evt => {
+      if (!row.dataset.id) return;
       if (evt.target instanceof HTMLInputElement) return;
       selectedBookingId = row.dataset.id;
       renderBookings();
     });
 
     row.addEventListener("dblclick", evt => {
+      if (!row.dataset.id) return;
       if (evt.target instanceof HTMLInputElement) return;
       const id = row.dataset.id;
       const entry = state.bookings.find(b => b.id === id && b.userId === activeUser().id);
@@ -1550,6 +1716,12 @@ function renderReport() {
     ["Jahr Ausgaben", euro(totalExpense)],
     ["Jahr Saldo", euro(net)]
   ].map(([k, v]) => `<article class="card"><p>${k}</p><h4>${v}</h4></article>`).join("");
+
+  const hasReportData = rows.some(r => r.income > 0 || r.expense > 0);
+  if (!hasReportData) {
+    el.reportBody.innerHTML = `<tr class="empty-row"><td colspan="4">${emptyStateHtml(`Für ${year} liegen noch keine Buchungen vor`, "Sobald Buchungen mit diesem Jahr erfasst sind, erscheint hier die Monatsübersicht.")}</td></tr>`;
+    return;
+  }
 
   el.reportBody.innerHTML = rows.map(r => `
     <tr>
@@ -1714,6 +1886,27 @@ function showDialog({
     dialogOverlay.addEventListener("click", onOverlayClick);
     document.addEventListener("keydown", onKeyDown);
   });
+}
+
+function showToast(message, type = "success", durationMs = 2600) {
+  const host = el.toastContainer;
+  if (!host) return;
+
+  const toast = document.createElement("div");
+  toast.className = "toast " + type;
+  toast.textContent = message;
+  host.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.classList.add("show");
+  });
+
+  const remove = () => {
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 180);
+  };
+
+  setTimeout(remove, durationMs);
 }
 
 async function showInfo(message, title = "Hinweis") {

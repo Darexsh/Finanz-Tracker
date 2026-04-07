@@ -32,11 +32,14 @@
 ## 4. UX und Bedienung
 
 - [x] Dashboard um eine Graphen-Darstellung wie in der früheren GUI erweitern (Monatsverlauf/Balkenchart).
-- [ ] Dialogsystem weiter verbessern (validierungsnahe Hinweise, Success-Feedback als Toast).
+- [x] Dialogsystem weiter verbessern (validierungsnahe Hinweise, Success-Feedback als Toast).
 - [x] Tabellen-Usability verbessern (Doppelklick lädt Buchung, Mehrfachauswahl, klare Auswahlzustände).
-- [ ] Form-Validierung visuell pro Feld anzeigen (nicht nur globaler Dialog).
-- [ ] Filterleiste ausbauen (Jahr ist drin, als Nächstes Presets und gespeicherte Filter).
-- [ ] Leere Zustände und Hilfetexte verbessern (Onboarding für Erstnutzer).
+- [x] Form-Validierung visuell pro Feld anzeigen (nicht nur globaler Dialog).
+- [x] Filterleiste ausbauen (Jahr + kompakte Standardfilter ohne Preset-/Speicher-Overhead).
+- [x] Leere Zustände und Hilfetexte verbessern (Onboarding für Erstnutzer).
+- [x] Steuer-Checkbox pro Buchung ergänzt + gelbe Hervorhebung in der Tabelle.
+- [x] Zeilenauswahl in Buchungen per Klick außerhalb wieder aufheben.
+- [x] Layout von "Neue Buchung" neu angeordnet (kompakter und übersichtlicher).
 
 ## 5. Reports und Export
 

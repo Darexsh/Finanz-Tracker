@@ -1,194 +1,231 @@
-# Finanz Tracker
+* * *
 
-Modernisierte Finanz-Desktop-App mit Tauri (Web-UI + native Desktop-Hülle).
+<div align="center">
 
-Diese README ist die zentrale und einzige Projektdokumentation.
+💸 Finanz Tracker
+============================
 
-## Projektstatus
+**Modern desktop finance tracking app with Tauri (Web UI + native shell)**  
+⚡📊🧾💾🔄
 
-- `apps/desktop/`: aktuelle Desktop-Basis (Tauri)
-- `apps/mobile/`: Platzhalter für die spätere Android-App
-- `shared/`: gemeinsame Module für Desktop + Android (Vorbereitung)
-- `docs/`: zusätzliche Projekt-Dokumente (optional)
+![Projekt-Status](https://img.shields.io/badge/Status-Aktiv-brightgreen) ![License](https://img.shields.io/badge/License-NonCommercial-blue) ![Version](https://img.shields.io/badge/Version-1.0-orange)
 
-## Projektstruktur
+![Platform](https://img.shields.io/badge/Platform-Desktop_(Tauri)-blue) ![Storage](https://img.shields.io/badge/Storage-SQLite-orange)
 
-```text
-Finanz Tracker/
-├─ apps/
-│  ├─ desktop/             # Desktop-App (Tauri)
-│  └─ mobile/              # Android-App (Vorbereitung)
-├─ shared/
-│  ├─ domain/              # gemeinsame Fachlogik (Vorbereitung)
-│  └─ utils/               # gemeinsame Hilfsfunktionen (Vorbereitung)
-├─ docs/                   # zusätzliche Doku (optional)
-└─ Ausgaben im Jahr.xlsx   # Ursprungs-Excel
-```
+[![Telegram Bot](https://img.shields.io/badge/Telegram-Bot-2AABEE?logo=telegram&logoColor=white)](https://t.me/darexsh_bot) [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-yellow?logo=buy-me-a-coffee)](https://buymeacoffee.com/darexsh)  
+<sub>Check out my bot in Telegram for an easy project overview.<br>If you want to support more projects, you can leave a small donation for a coffee.</sub>
 
-## Aktueller Funktionsstand (Desktop)
+</div>
 
-### Benutzerverwaltung
 
-- Mehrere Benutzerprofile, strikt getrennte Buchungen je Benutzer
-- Letzten aktiven Benutzer beim Start automatisch laden
-- Standardbenutzer wird nur erstellt, wenn noch kein Benutzer existiert
-- Benutzer anlegen, umbenennen, löschen
-- Sicherheitsdialog beim Löschen von Benutzern mit vorhandenen Buchungen
+* * *
 
-### Buchungen
+✨ Authors
+---------
 
-- Buchungen mit vollem Datum im Format `TT.MM.JJJJ`
-- Auto-Kategorisierung anhand Beschreibung (Keyword + lernfähige Regeln aus bisherigen Buchungen), manuell übersteuerbar
-- Benutzerdefinierte Kategorien direkt in der GUI anlegen, umbenennen, löschen
-- Buchung per Doppelklick in Formular laden, ändern und mit "Speichern" sichern (automatisch Neu/Update)
-- Mehrfachauswahl und Sammellöschung von Buchungen
-- Sortierung: neuere Daten oben; bei gleichem Datum zuletzt angelegte Buchung zuerst
+| Name | GitHub | Role | Contact | Contributions |
+| --- | --- | --- | --- | --- |
+| **[Darexsh by Daniel Sichler](https://github.com/Darexsh)** | [Link](https://github.com/Darexsh?tab=repositories) | Product Owner, UX direction, development | 📧 [E-Mail](mailto:sichler.daniel@gmail.com) | Product vision, architecture, implementation, UX design, feature delivery, testing, and release preparation |
 
-### Filter und Auswertung
+* * *
 
-- Filter nach Monat, Jahr, Typ, Kategorie (inkl. benutzerdefinierter Kategorien), Konto und Textsuche
-- Jahresauswertung mit Monatszeilen (Einnahmen, Ausgaben, Saldo)
-- CSV-Export der Jahresauswertung
-- CSV-Ziel: primär Download-Ordner, Fallback Dokumente
+🤝 Scope & Credits
+------------------
 
-### Dashboard
+This project is an independent personal/open-source finance tracker.
 
-- KPI-Karten (Saldo, Monatseinnahmen, Monatsausgaben, Monatsüberschuss)
-- Top-Kategorien für Ausgaben im aktuellen Monat
-- Monatsbalkenchart (aktuelles Jahr):
-  - nur positive Richtung
-  - grün = Einnahmen
-  - rot = Ausgabenanteil im Balken
-  - Hover/Klick zeigt Monatsdetails (Einnahmen, Ausgaben, Saldo)
-  - dynamische Y-Achsen-Legende
+- No affiliation with Google Drive, FolderSync, Syncthing, Tauri, or other third-party tools.
+- External sync tools are used only as optional transport layer for folder-based sync.
 
-### Persistenz, Recovery und Backup
+* * *
 
-- Primäre Persistenz über SQLite im Tauri-Backend
-- Migration bestehender Browser-Daten (`localStorage`) nach SQLite beim Start
-- Recovery-Logik bei DB-Lock/Schreibfehlern/beschädigten Daten
-- Lokaler Fallback bei SQLite-Fehlern
-- Daily-Backup als JSON im App-Datenordner unter `backups/`
-- Dateimuster: `state-backup-YYYY-MM-DD.json`
-- Automatisches Aufräumen: es bleiben die neuesten 60 Backups
+🚀 About the Project
+===================
 
-## Cloud-/Sync-Workflow (final)
+**Finanz Tracker** is a desktop app to manage personal finances with multiple separated user profiles, fast booking workflows, dashboard insights, yearly reports, and optional cross-device sync via a local sync folder.
 
-### Entscheidung
+The app is built with Tauri and currently optimized for desktop usage (Windows-first), while Android is planned after desktop stabilization.
 
-- Kein OAuth in der App.
-- Kein Google-Login innerhalb von Finanz Tracker.
-- Sync läuft über externe Sync-Tools:
-  - Windows: Google Drive für Desktop
-  - Android: FolderSync
+* * *
 
-### Warum dieser Ansatz
+✨ Features
+----------
 
-- Kein OAuth-Review/Verifizierung für die App nötig
-- Kein Token-Handling innerhalb der App
-- Einfachere öffentliche Veröffentlichung (Open Source/GitHub)
-- Gleiches Datenprinzip für Desktop und spätere Android-App
+* 👥 **Multi-user profiles**: Separate datasets per user.
 
-### Zielbild
+* 💾 **SQLite persistence**: Main storage in Tauri backend with migration from legacy `localStorage`.
 
-- App arbeitet nur mit einem lokalen Sync-Ordner.
-- Dieser Ordner wird von Google Drive Desktop in die Cloud synchronisiert.
-- Android synchronisiert denselben Drive-Ordner per FolderSync auf lokalen Gerätespeicher.
-- Die spätere Android-App nutzt denselben lokalen Ordner-Ansatz.
+* 🧠 **Smart categories**: Keyword-based auto-categorization plus learning from past booking behavior.
 
-### Konkreter Setup-Ablauf
+* 🧾 **Fast booking workflow**: Double-click row to load, edit, and save with automatic new/update handling.
 
-1. In Google Drive einen Ordner erstellen, z. B. `FinanzTrackerSync`.
-2. Auf Windows `Google Drive für Desktop` installieren und anmelden.
-3. Den Drive-Ordner lokal verfügbar machen (Spiegelung/Offline verfügbar).
-4. In der Desktop-App im Tab `Synchronisierung` den lokalen Sync-Ordnerpfad auswählen (wird automatisch gespeichert).
-5. Die App lädt beim Start automatisch aus dem Sync-Ordner (falls Datei vorhanden).
-6. Änderungen werden automatisch in die Sync-Datei zurückgeschrieben (Overwrite).
-7. Auf Android FolderSync einrichten:
-   - Konto: Google Drive
-   - Remote-Ordner: `FinanzTrackerSync`
-   - Lokaler Ordner: z. B. `Android/data/.../FinanzTrackerSync`
-   - Sync-Richtung: Two-way
-8. Optional: in FolderSync Zeitplan für regelmäßigen Sync aktivieren.
+* ✅ **Inline validation**: Field-level validation with clear feedback and success toasts.
 
-### App-Verhalten (Synchronisierung)
+* 🗑️ **Bulk operations**: Multi-select and delete multiple bookings at once.
 
-- Eigener Tab: `Synchronisierung`
-- Ordnerauswahl per `Durchsuchen` (kein manuelles Pfad-Raten nötig)
-- Live-Anzeige: Sync-Status, letzte Sync-Sicherung, letzte Wiederherstellung
-- Sync-Datei: `finanz-tracker-sync-latest.json`
+* 🧷 **Tax declaration flag**: Mark bookings as tax-relevant directly in table; highlighted in yellow.
 
-### Konflikt-Hinweis
+* 📊 **Dashboard analytics**: KPI cards, top categories, and monthly income/expense chart with tooltip details.
 
-- Bei gleichzeitigen Änderungen auf zwei Geräten können Konflikte entstehen.
-- Aktuell gilt praktisch: `finanz-tracker-sync-latest.json` ist die führende Datei (wird überschrieben).
-- Empfehlung: vor Gerätewechsel kurz manuell synchronisieren.
+* 🧮 **Yearly reports**: Monthly yearly summary and CSV export.
 
-## Voraussetzungen
+* 🔎 **Live filters**: Filter by month, year, type, category, account, and text with quick reset.
 
-### Für Desktop-Entwicklung (Tauri)
+* 📦 **Backup & recovery**: Daily JSON backups + fallback/recovery behavior for storage errors.
 
-- Node.js 20+
-- npm
-- Rust (rustup + cargo)
-- (Windows) Visual Studio Build Tools mit C++ Workload
-- (Windows) Microsoft Edge WebView2 Runtime
+* 🔄 **Folder-based sync**: Optional sync using `finanz-tracker-sync-latest.json` in a user-selected folder.
 
-## Installation
+* * *
 
-### A) Ohne CLI-Installer (GUI-Weg, Windows)
+📥 Installation
+---------------
 
-1. Node.js LTS installieren: https://nodejs.org/
-2. Rust installieren: https://www.rust-lang.org/tools/install  
-   (Download `rustup-init.exe`, ausführen, Standardinstallation)
-3. Visual Studio Build Tools installieren: https://visualstudio.microsoft.com/de/visual-cpp-build-tools/  
-   Workload: `Desktop development with C++` (inkl. MSVC + Windows SDK)
-4. WebView2 Runtime installieren (falls nicht vorhanden): https://developer.microsoft.com/microsoft-edge/webview2/
+1. Install **Node.js 20+** and **npm**.
 
-### B) Projektabhängigkeiten installieren
+2. Install **Rust** (`rustup` + `cargo`).
+
+3. On Windows install **Visual Studio Build Tools** with C++ workload.
+
+4. Ensure **Microsoft Edge WebView2 Runtime** is installed.
+
+5. Install project dependencies:
 
 ```bash
-cd "Finanz Tracker/apps/desktop"
+cd "Finanz-Tracker/apps/desktop"
 npm install
 ```
 
-## Entwicklung und Tests (vor Release-Build)
-
-### 1) Frontend vorbereiten
+6. Prepare frontend dist:
 
 ```bash
 npm run prepare:dist
 ```
 
-### 2) Desktop-App im Dev-Modus starten
-
-```bash
-npx tauri dev
-```
-
-Alternativ:
+7. Start desktop app in dev mode:
 
 ```bash
 npm run tauri:dev
 ```
 
-## Release-Build
+Alternative:
 
 ```bash
-npm run tauri:build
+npx tauri dev
 ```
 
-Output liegt danach in:
+* * *
 
-- `apps/desktop/src-tauri/target/release/bundle/`
-- Linux: `.AppImage`, `.deb`, `.rpm`
-- Windows: `.msi` (oder je nach Bundle-Config weitere Installer)
+📝 Usage
+--------
 
-## Hinweise
+1. 👤 **Select or create user profile** in the header.
 
-- Android folgt als nächster Schritt nach Desktop-Stabilisierung
-- Für größere UI-Änderungen: erst `tauri dev` testen, dann `tauri build`
+2. 🧾 **Add bookings** in `Buchungen → Neue Buchung`.
 
-## Roadmap
+3. ✏️ **Update existing booking** via double-click on a table row, edit values, then `Speichern`.
 
-- Vollständige Aufgabenliste: `TODO.md`
+4. 🧷 **Toggle tax declaration** directly in the booking table checkbox column.
+
+5. 🔎 **Filter bookings live** using month/year/type/category/account/text.
+
+6. 📊 **View dashboard** for KPI and monthly chart.
+
+7. 📁 **Use yearly report + CSV export** in `Auswertung`.
+
+8. 🔄 **Configure sync folder** in `Synchronisierung` for optional cross-device workflow.
+
+* * *
+
+☁️ Sync Workflow (No OAuth)
+---------------------------
+
+The app intentionally uses a **folder-based sync model**.
+
+- The app does not perform Google OAuth login.
+- You select a local sync folder once.
+- The app reads/writes `finanz-tracker-sync-latest.json` there.
+- External tools sync that folder between devices.
+
+Typical setup:
+
+- Desktop: Google Drive Desktop, Syncthing, or similar
+- Android: FolderSync, Syncthing, or similar
+
+* * *
+
+📂 Project Structure
+--------------------
+
+```text
+Finanz-Tracker/
+├─ apps/
+│  ├─ desktop/             # Tauri desktop app (active)
+│  └─ mobile/              # Android placeholder (planned)
+├─ shared/
+│  ├─ domain/              # shared domain logic (planned)
+│  └─ utils/               # shared utilities (planned)
+├─ docs/                   # optional docs
+├─ TODO.md                 # roadmap and task tracking
+└─ Ausgaben im Jahr.xlsx   # original source spreadsheet
+```
+
+* * *
+
+🧰 Troubleshooting
+-----------------
+
+* **`tauri` command not found**: Run `npm install` in `apps/desktop`, then retry `npm run tauri:dev`.
+
+* **`failed to run 'cargo metadata' ... program not found`**: Rust/Cargo missing in PATH. Reinstall Rust and restart terminal/PC.
+
+* **UI changes not visible**: Run `npm run prepare:dist` and restart dev app.
+
+* **Sync file not found on second device**: Verify external sync tool has completed folder sync first.
+
+* * *
+
+⚙️ Technical Details
+--------------------
+
+* Tauri desktop shell with web frontend.
+
+* Backend persistence via SQLite commands (`db_load_state` / `db_save_state`).
+
+* Daily JSON backups and cleanup policy.
+
+* Optional sync commands for folder-based backup/restore.
+
+* Current data model supports separated users, bookings, and custom categories.
+
+* * *
+
+🧭 Scope
+--------
+
+* Desktop-first product focus until stability goals are finished.
+
+* Android app implementation is intentionally postponed to later roadmap phases.
+
+* Sync conflict handling is intentionally simple for non-parallel usage.
+
+* * *
+
+📜 License
+----------
+
+This project is licensed under the **Non-Commercial Software License (MIT-style) v1.0** and was developed as a personal/educational project. You are free to use, modify, and distribute the code for **non-commercial purposes only**, and must credit the author:
+
+**Copyright (c) 2026 Darexsh by Daniel Sichler**
+
+Please include the following notice with any use or distribution:
+
+> Developed by Daniel Sichler aka Darexsh. Licensed under the Non-Commercial Software License (MIT-style) v1.0. See `LICENSE` for details.
+
+The full license is available in the [LICENSE](LICENSE) file.
+
+* * *
+
+📌 Roadmap
+----------
+
+All open and completed tasks are tracked in [TODO.md](TODO.md).
