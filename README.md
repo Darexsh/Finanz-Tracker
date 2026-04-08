@@ -44,7 +44,7 @@ This project is an independent personal/open-source finance tracker.
 
 **Finanz Tracker** is an app to manage personal finances with multiple separated user profiles, fast booking workflows, dashboard insights, yearly reports, and optional cross-device sync via a local sync folder.
 
-The app is built with Tauri for desktop and includes an Android app (Kotlin + Compose) with SAF-based sync folder selection, sync-file auto-load/auto-save, and an extended bookings workflow (create/edit/delete/filter/tax-flag).
+The app is built with Tauri for desktop and includes an Android app (Kotlin + Compose) with SAF-based sync folder selection, sync-file auto-load/auto-save, background sync refresh while app is open, and an extended bookings workflow (create/edit/delete/filter/tax-flag/date input/custom-category management).
 
 * * *
 
@@ -55,7 +55,7 @@ The app is built with Tauri for desktop and includes an Android app (Kotlin + Co
 
 * 💾 **SQLite persistence**: Main storage in Tauri backend with migration from legacy `localStorage`.
 
-* 🧠 **Smart categories**: Keyword-based auto-categorization plus learning from past booking behavior.
+* 🧠 **Smart categories**: Keyword-based auto-categorization plus learning from past booking behavior, including custom category management (add/rename/delete) with built-in-category protection and sync-safe persistence.
 
 * 🧾 **Fast booking workflow**: Double-click row to load, edit, and save with automatic new/update handling.
 
@@ -65,11 +65,11 @@ The app is built with Tauri for desktop and includes an Android app (Kotlin + Co
 
 * 🧷 **Tax declaration flag**: Mark bookings as tax-relevant directly in table; highlighted in yellow.
 
-* 📊 **Dashboard analytics**: KPI cards, selectable month for top categories, and monthly income/expense chart with tooltip details.
+* 📊 **Dashboard analytics**: KPI cards (`Aktueller Saldo`, `Einnahmen (Monat)`, `Ausgaben (Monat)`, `Monatsüberschuss`), selectable month for top categories, and monthly income/expense chart with tooltip details.
 
 * 🧮 **Yearly reports**: Monthly yearly summary plus year-over-year comparison (selected year vs. previous year), and flexible export content: yearly summary, year comparison, all bookings in a selected year, or all bookings in a selected month (CSV, XLSX, PDF with Save dialog). Export feedback is shown as toast notifications. CSV includes metadata and totals.
 
-* 🔎 **Live filters**: Filter by month, year, type, category, account, and text with quick reset.
+* 🔎 **Live filters**: Filter by month, year, type, category, account, and text with quick reset (desktop and Android parity).
 
 * 📦 **Backup & recovery**: Daily JSON backups + fallback/recovery behavior for storage errors.
 
@@ -79,6 +79,8 @@ The app is built with Tauri for desktop and includes an Android app (Kotlin + Co
 
 📥 Installation
 ---------------
+
+### Desktop (Tauri)
 
 1. Install **Node.js 20+** and **npm**.
 
@@ -115,6 +117,27 @@ Alternative:
 npx tauri dev
 ```
 
+### Android (Kotlin + Compose)
+
+1. Install **Android Studio** (latest stable) with Android SDK + Emulator.
+
+2. Open project folder:
+
+```text
+Finanz-Tracker/apps/mobile
+```
+
+3. Let Android Studio complete Gradle sync.
+
+4. Select a device (emulator or physical phone) and run the `app` configuration.
+
+Optional CLI build from project root:
+
+```bash
+cd "Finanz-Tracker/apps/mobile"
+./gradlew :app:assembleDebug
+```
+
 * * *
 
 📝 Usage
@@ -149,6 +172,7 @@ The app intentionally uses a **folder-based sync model**.
 - External tools sync that folder between devices.
 - Desktop app performs a short startup retry for sync-restore to handle delayed folder-sync arrival.
 - While running, desktop also checks sync updates in the background so changes appear without manual refresh.
+- Android app auto-loads sync state on startup and also checks sync updates in the background while running.
 - Desktop invalidates render caches and reapplies full UI state on sync-restore so loaded changes are shown immediately without manual F5.
 - After sync-restore, desktop skips one immediate sync write-back to reduce timestamp churn/conflicts with external folder sync tools.
 
@@ -167,7 +191,7 @@ Typical setup:
 Finanz-Tracker/
 ├─ apps/
 │  ├─ desktop/             # Tauri desktop app (active)
-│  └─ mobile/              # Android app (Kotlin/Compose, active implementation)
+│  └─ mobile/              # Android app (Kotlin/Compose, final)
 ├─ shared/
 │  ├─ domain/              # shared domain logic (planned)
 │  └─ utils/               # shared utilities (planned)
@@ -213,7 +237,7 @@ Finanz-Tracker/
 
 * Desktop-first product focus until stability goals are finished.
 
-* Android app is in active implementation with sync, multi-user handling, bookings/report parity, and report export (CSV/PDF/XLSX) available; cross-platform shared-logic extraction and release hardening are still in progress.
+* Android app is final.
 
 * Sync conflict handling is intentionally simple for non-parallel usage.
 

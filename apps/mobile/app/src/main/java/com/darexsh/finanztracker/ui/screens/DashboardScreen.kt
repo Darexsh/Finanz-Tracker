@@ -1,6 +1,7 @@
 package com.darexsh.finanztracker.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,7 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.Card
@@ -24,18 +26,32 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.PopupProperties
 import com.darexsh.finanztracker.R
 import com.darexsh.finanztracker.model.TrackerState
 import com.darexsh.finanztracker.model.TxType
+import kotlin.math.max
+import kotlin.math.min
 import java.text.DateFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -104,7 +120,6 @@ fun DashboardScreen(state: TrackerState) {
             expense = rows.filter { it.txType == TxType.EXPENSE }.sumOf { it.amount }
         )
     }
-    val maxValue = monthTrend.maxOfOrNull { maxOf(it.income, it.expense) }?.coerceAtLeast(1.0) ?: 1.0
 
     LazyColumn(
         modifier = Modifier
@@ -206,10 +221,25 @@ fun DashboardScreen(state: TrackerState) {
                         stringResource(R.string.dashboard_trend_legend),
                         style = MaterialTheme.typography.bodySmall
                     )
-                    monthTrend.forEach { row ->
-                        MonthTrendBar(
-                            row = row,
-                            maxValue = maxValue
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(340.dp)
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            .background(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            .padding(8.dp)
+                    ) {
+                        MonthlyCashflowChart(
+                            rows = monthTrend,
+                            selectedYear = selectedTrendYear,
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
                 }
@@ -245,7 +275,8 @@ private fun DashboardYearSelect(
         }
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            containerColor = MaterialTheme.colorScheme.surface
         ) {
             yearOptions.forEach { year ->
                 DropdownMenuItem(
@@ -290,7 +321,8 @@ private fun DashboardMonthSelect(
         }
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            containerColor = MaterialTheme.colorScheme.surface
         ) {
             (1..12).forEach { month ->
                 val label = monthLabels.getOrNull(month - 1)
@@ -309,38 +341,268 @@ private fun DashboardMonthSelect(
 }
 
 @Composable
-private fun MonthTrendBar(row: MonthTrendRow, maxValue: Double) {
-    val incomeRatio = (row.income / maxValue).toFloat().coerceIn(0f, 1f)
-    val expenseRatio = (row.expense / maxValue).toFloat().coerceIn(0f, 1f)
+private fun MonthlyCashflowChart(
+    rows: List<MonthTrendRow>,
+    selectedYear: Int,
+    modifier: Modifier = Modifier
+) {
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
+    var chartSize by remember { mutableStateOf(IntSize.Zero) }
+    LaunchedEffect(rows, selectedYear) {
+        selectedIndex = null
+    }
+    val maxScale = rows.maxOfOrNull { max(it.income, it.expense) }?.coerceAtLeast(1.0) ?: 1.0
+    val density = LocalDensity.current
+    val axisTextPx = with(density) { 12.sp.toPx() }
+    val monthTextPx = with(density) { 12.sp.toPx() }
+    val yearTextPx = with(density) { 12.sp.toPx() }
+    val axisPaint = remember {
+        android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#64748B")
+            textSize = axisTextPx
+            textAlign = android.graphics.Paint.Align.RIGHT
+        }
+    }
+    val monthPaint = remember {
+        android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#64748B")
+            textSize = monthTextPx
+            textAlign = android.graphics.Paint.Align.CENTER
+        }
+    }
+    val yearPaint = remember {
+        android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#64748B")
+            textSize = yearTextPx
+            textAlign = android.graphics.Paint.Align.RIGHT
+            typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+        }
+    }
+    val padLeft = with(density) { 44.dp.toPx() }
+    val padRight = with(density) { 12.dp.toPx() }
+    val padTop = with(density) { 20.dp.toPx() }
+    val padBottom = with(density) { 30.dp.toPx() }
 
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(row.month, style = MaterialTheme.typography.labelMedium)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .height(10.dp)
-                    .width((220f * incomeRatio).dp)
-                    .background(Color(0xFF1AA251))
+    Box(
+        modifier = modifier
+            .onSizeChanged { chartSize = it }
+            .pointerInput(rows, selectedYear, chartSize) {
+            detectTapGestures { tap ->
+                val width = size.width.toFloat()
+                val height = size.height.toFloat()
+                val baseY = height - padBottom
+                val inChartX = tap.x >= padLeft && tap.x <= (width - padRight)
+                val inChartY = tap.y >= padTop && tap.y <= baseY
+                if (!inChartX || !inChartY) {
+                    selectedIndex = null
+                    return@detectTapGestures
+                }
+                val chartW = width - padLeft - padRight
+                if (chartW <= 0f) {
+                    selectedIndex = null
+                    return@detectTapGestures
+                }
+                val slot = chartW / 12f
+                val raw = ((tap.x - padLeft) / slot).toInt()
+                val index = raw.coerceIn(0, 11)
+                selectedIndex = if (selectedIndex == index) null else index
+            }
+            }
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val width = size.width
+            val height = size.height
+            val baseY = height - padBottom
+            val chartW = width - padLeft - padRight
+            val chartH = height - padTop - padBottom
+            val maxBarH = chartH - with(density) { 8.dp.toPx() }
+            val minBarPx = with(density) { 2.dp.toPx() }
+
+            drawLine(
+                color = Color(0xFFDbe4EE),
+                start = Offset(padLeft, padTop),
+                end = Offset(padLeft, baseY),
+                strokeWidth = 1.dp.toPx()
             )
-            Text(stringResource(R.string.format_eur, row.income), style = MaterialTheme.typography.bodySmall)
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .height(10.dp)
-                    .width((220f * expenseRatio).dp)
-                    .background(Color(0xFFD7263D))
+            drawLine(
+                color = Color(0xFFDbe4EE),
+                start = Offset(padLeft, baseY),
+                end = Offset(width - padRight, baseY),
+                strokeWidth = 1.dp.toPx()
             )
-            Text(stringResource(R.string.format_eur, row.expense), style = MaterialTheme.typography.bodySmall)
+
+            val ticks = listOf(1f, 0.75f, 0.5f, 0.25f, 0f)
+            ticks.forEach { tick ->
+                val y = baseY - maxBarH * tick
+                drawLine(
+                    color = if (tick == 0f) Color(0xFFDbe4EE) else Color(0xFFEef2F7),
+                    start = Offset(padLeft, y),
+                    end = Offset(width - padRight, y),
+                    strokeWidth = 1.dp.toPx()
+                )
+                val rawValue = maxScale * tick
+                val label = if (tick == 0f) "0" else compactAxisValue(rawValue)
+                drawIntoCanvas { canvas ->
+                    canvas.nativeCanvas.drawText(
+                        label,
+                        padLeft - with(density) { 8.dp.toPx() },
+                        y + with(density) { 4.dp.toPx() },
+                        axisPaint
+                    )
+                }
+            }
+
+            val slot = chartW / 12f
+            val barW = slot * 0.68f
+
+            rows.forEachIndexed { index, row ->
+                val x = padLeft + index * slot + (slot - barW) / 2f
+                val incomeH = if (row.income > 0.0) {
+                    max(minBarPx, ((row.income / maxScale) * maxBarH).toFloat())
+                } else {
+                    0f
+                }
+                val expenseRaw = if (row.expense > 0.0) {
+                    max(minBarPx, ((row.expense / maxScale) * maxBarH).toFloat())
+                } else {
+                    0f
+                }
+                val expenseOverlayH = if (incomeH > 0f) min(expenseRaw, incomeH) else expenseRaw
+
+                if (incomeH > 0f) {
+                    drawRect(
+                        color = Color(0xFF22C55E),
+                        topLeft = Offset(x, baseY - incomeH),
+                        size = androidx.compose.ui.geometry.Size(barW, incomeH)
+                    )
+                }
+                if (expenseOverlayH > 0f) {
+                    drawRect(
+                        color = Color(0xFFEF4444),
+                        topLeft = Offset(x, baseY - expenseOverlayH),
+                        size = androidx.compose.ui.geometry.Size(barW, expenseOverlayH)
+                    )
+                }
+
+                if (selectedIndex == index) {
+                    val visibleH = max(incomeH, expenseOverlayH).coerceAtLeast(minBarPx)
+                    val top = baseY - visibleH
+                    drawRect(
+                        color = Color(0xFF1E293B),
+                        topLeft = Offset(x - 1.5f, top - 1.5f),
+                        size = androidx.compose.ui.geometry.Size(barW + 3f, visibleH + 3f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f)
+                    )
+                }
+
+                drawIntoCanvas { canvas ->
+                    canvas.nativeCanvas.drawText(
+                        (index + 1).toString(),
+                        x + barW / 2f,
+                        height - with(density) { 10.dp.toPx() },
+                        monthPaint
+                    )
+                }
+            }
+
+            drawIntoCanvas { canvas ->
+                canvas.nativeCanvas.drawText(
+                    selectedYear.toString(),
+                    width - padRight,
+                    with(density) { 12.dp.toPx() },
+                    yearPaint
+                )
+            }
         }
+
+        val row = selectedIndex?.let { rows.getOrNull(it) }
+        if (row != null && chartSize.width > 0 && chartSize.height > 0) {
+            val saldo = row.income - row.expense
+            val chartWidthPx = chartSize.width.toFloat()
+            val chartHeightPx = chartSize.height.toFloat()
+            val baseY = chartHeightPx - padBottom
+            val chartW = chartWidthPx - padLeft - padRight
+            val chartH = chartHeightPx - padTop - padBottom
+            val maxBarH = chartH - with(density) { 8.dp.toPx() }
+            val minBarPx = with(density) { 2.dp.toPx() }
+            val slot = chartW / 12f
+            val barW = slot * 0.68f
+            val index = selectedIndex ?: 0
+            val x = padLeft + index * slot + (slot - barW) / 2f
+            val incomeH = if (row.income > 0.0) {
+                max(minBarPx, ((row.income / maxScale) * maxBarH).toFloat())
+            } else {
+                0f
+            }
+            val expenseRaw = if (row.expense > 0.0) {
+                max(minBarPx, ((row.expense / maxScale) * maxBarH).toFloat())
+            } else {
+                0f
+            }
+            val expenseOverlayH = if (incomeH > 0f) min(expenseRaw, incomeH) else expenseRaw
+            val visibleH = max(incomeH, expenseOverlayH).coerceAtLeast(minBarPx)
+            val barTop = baseY - visibleH
+
+            val popupWidthPx = with(density) { 214.dp.toPx() }
+            val popupHeightPx = with(density) { 108.dp.toPx() }
+            val marginPx = with(density) { 8.dp.toPx() }
+
+            val targetCenterX = x + barW / 2f
+            val unclampedX = targetCenterX - popupWidthPx / 2f
+            val popupX = unclampedX.coerceIn(
+                marginPx,
+                chartWidthPx - popupWidthPx - marginPx
+            )
+            val aboveY = barTop - popupHeightPx - marginPx
+            val belowY = barTop + marginPx
+            val popupY = if (aboveY >= marginPx) aboveY else belowY.coerceAtMost(
+                chartHeightPx - popupHeightPx - marginPx
+            )
+
+            DropdownMenu(
+                expanded = true,
+                onDismissRequest = { selectedIndex = null },
+                offset = DpOffset(
+                    x = with(density) { popupX.toDp() },
+                    y = with(density) { popupY.toDp() }
+                ),
+                containerColor = MaterialTheme.colorScheme.surface,
+                properties = PopupProperties(focusable = true)
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = "${row.month} $selectedYear",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "${stringResource(R.string.report_income)}: ${stringResource(R.string.format_eur, row.income)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF0F766E)
+                    )
+                    Text(
+                        text = "${stringResource(R.string.report_expense)}: ${stringResource(R.string.format_eur, row.expense)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFDC2626)
+                    )
+                    Text(
+                        text = "${stringResource(R.string.report_balance)}: ${stringResource(R.string.format_eur, saldo)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF1D4ED8)
+                    )
+                }
+            }
+        }
+    }
+}
+private fun compactAxisValue(value: Double): String {
+    return when {
+        value >= 1_000_000 -> String.format(Locale.GERMANY, "%.1fM", value / 1_000_000)
+        value >= 1_000 -> String.format(Locale.GERMANY, "%.1fk", value / 1_000)
+        else -> value.toInt().toString()
     }
 }
 

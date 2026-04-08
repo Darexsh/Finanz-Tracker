@@ -20,6 +20,9 @@ interface TrackerService {
     fun deleteBooking(state: TrackerState, bookingId: String): TrackerState?
     fun deleteBookings(state: TrackerState, bookingIds: Set<String>): TrackerState?
     fun setBookingTaxDeclaration(state: TrackerState, bookingId: String, taxDeclaration: Boolean): TrackerState
+    fun addCustomCategory(state: TrackerState, name: String): CategoryMutationResult
+    fun renameCustomCategory(state: TrackerState, currentName: String, newName: String): CategoryMutationResult
+    fun deleteCustomCategory(state: TrackerState, name: String): CategoryMutationResult
     fun setActiveUser(state: TrackerState, userId: String): TrackerState?
     fun setSyncFolderUri(state: TrackerState, uri: String): TrackerState
     fun clearSyncFolderUri(state: TrackerState): TrackerState
@@ -139,6 +142,86 @@ class DefaultTrackerService(
                     booking
                 }
             }
+        )
+    }
+
+    override fun addCustomCategory(state: TrackerState, name: String): CategoryMutationResult {
+        val trimmed = name.trim()
+        if (trimmed.isBlank()) return CategoryMutationResult(CategoryMutationStatus.EMPTY_NAME)
+
+        val existsInDefault = FinanceCatalog.categories.any { it.equals(trimmed, ignoreCase = true) }
+        val existsInCustom = state.customCategories.any { it.equals(trimmed, ignoreCase = true) }
+        if (existsInDefault || existsInCustom) return CategoryMutationResult(CategoryMutationStatus.ALREADY_EXISTS)
+
+        val merged = (state.customCategories + trimmed).distinctBy { it.lowercase() }.sortedBy { it.lowercase() }
+        return CategoryMutationResult(
+            status = CategoryMutationStatus.SUCCESS,
+            state = state.copy(customCategories = merged)
+        )
+    }
+
+    override fun renameCustomCategory(
+        state: TrackerState,
+        currentName: String,
+        newName: String
+    ): CategoryMutationResult {
+        val selected = currentName.trim()
+        if (selected.isBlank()) return CategoryMutationResult(CategoryMutationStatus.NOT_FOUND)
+        if (FinanceCatalog.categories.any { it.equals(selected, ignoreCase = true) }) {
+            return CategoryMutationResult(CategoryMutationStatus.BUILT_IN_BLOCKED)
+        }
+
+        val currentCustom = state.customCategories.firstOrNull { it.equals(selected, ignoreCase = true) }
+            ?: return CategoryMutationResult(CategoryMutationStatus.NOT_FOUND)
+
+        val trimmed = newName.trim()
+        if (trimmed.isBlank()) return CategoryMutationResult(CategoryMutationStatus.EMPTY_NAME)
+
+        val duplicate = (FinanceCatalog.categories + state.customCategories)
+            .any { it.equals(trimmed, ignoreCase = true) && !it.equals(currentCustom, ignoreCase = true) }
+        if (duplicate) return CategoryMutationResult(CategoryMutationStatus.ALREADY_EXISTS)
+
+        val renamedCustom = state.customCategories.map { entry ->
+            if (entry.equals(currentCustom, ignoreCase = true)) trimmed else entry
+        }.distinctBy { it.lowercase() }.sortedBy { it.lowercase() }
+
+        val normalizedTarget = FinanceCatalog.normalizeCategory(trimmed)
+        val renamedBookings = state.bookings.map { booking ->
+            if (booking.category.equals(currentCustom, ignoreCase = true)) {
+                booking.copy(category = normalizedTarget)
+            } else {
+                booking
+            }
+        }
+
+        return CategoryMutationResult(
+            status = CategoryMutationStatus.SUCCESS,
+            state = state.copy(customCategories = renamedCustom, bookings = renamedBookings)
+        )
+    }
+
+    override fun deleteCustomCategory(state: TrackerState, name: String): CategoryMutationResult {
+        val selected = name.trim()
+        if (selected.isBlank()) return CategoryMutationResult(CategoryMutationStatus.NOT_FOUND)
+        if (FinanceCatalog.categories.any { it.equals(selected, ignoreCase = true) }) {
+            return CategoryMutationResult(CategoryMutationStatus.BUILT_IN_BLOCKED)
+        }
+
+        val currentCustom = state.customCategories.firstOrNull { it.equals(selected, ignoreCase = true) }
+            ?: return CategoryMutationResult(CategoryMutationStatus.NOT_FOUND)
+
+        val reducedCustom = state.customCategories.filterNot { it.equals(currentCustom, ignoreCase = true) }
+        val remappedBookings = state.bookings.map { booking ->
+            if (booking.category.equals(currentCustom, ignoreCase = true)) {
+                booking.copy(category = "Sonstiges")
+            } else {
+                booking
+            }
+        }
+
+        return CategoryMutationResult(
+            status = CategoryMutationStatus.SUCCESS,
+            state = state.copy(customCategories = reducedCustom, bookings = remappedBookings)
         )
     }
 

@@ -62,6 +62,9 @@
 - [x] Große Buchungslisten virtualisieren (UI bleibt schnell bei vielen Datensätzen).
 - [x] Aggregationen cachen (Dashboard/Reports) für schnellere Wechsel.
 - [x] Schreibzugriffe bündeln (Batching), wo sinnvoll.
+- [x] Android-Hintergrundanimation renderseitig vereinfacht (kein bewegter Fullscreen-Gradient mehr), um Scroll-Ruckler in allen Tabs zu reduzieren.
+- [x] Android-Sync-Auto-Refresh: großer State-Vergleich in Background-Dispatcher verlagert (weniger UI-Jank bei großen Datenmengen).
+- [x] Android-Hintergrundanimation weiter optimiert: farbwechselnde Steps statt 60fps-Daueranimation (reduziert Mikro-Ruckler beim schnellen Scrollen).
 
 ## 7. Android - Funktionalität zuerst (vor UI-Parity)
 
@@ -85,8 +88,11 @@
 - [x] Design-Tokens von Desktop auf Android übertragen (Farben, Typografie, Spacing).
 - [x] Formular-/Listenlayout visuell an Desktop angleichen.
 - [x] Dashboard visuell angleichen (inkl. Graphen-Darstellung im gleichen Stil).
+- [x] Monatsverlauf-Grafik auf Android an Desktop-Canvas-Stil angeglichen (Achsen, Grid, Balken-Overlay, Jahreslabel).
+- [x] Monatsverlauf-Interaktion auf Android ergänzt: Tap auf Monatsbalken zeigt Detailwerte (Einnahmen, Ausgaben, Saldo) wie im Desktop-Tooltip.
 - [x] Dashboard-Top-Kategorien um eine Monatsauswahl erweitert (Desktop + Android).
 - [x] Interaktionsdetails angleichen (Toasts, Fokus, Zustandsfeedback, Empty States).
+- [x] Android-App für den aktuellen Scope als final markiert (nur noch kleine UI-Polish-Themen offen).
 
 ## 9. Release/Operations
 

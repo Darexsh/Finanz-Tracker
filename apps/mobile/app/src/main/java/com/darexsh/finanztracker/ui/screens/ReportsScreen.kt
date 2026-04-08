@@ -8,34 +8,54 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import com.darexsh.finanztracker.R
 import com.darexsh.finanztracker.domain.export.XlsxBuilder
 import com.darexsh.finanztracker.domain.export.XlsxSheet
@@ -66,8 +86,14 @@ private data class ExportPayload(
     val bytes: ByteArray
 )
 
-private data class CompareRow(val metric: String, val previous: Double, val current: Double) {
+private data class CompareRow(
+    val metric: String,
+    val previous: Double,
+    val current: Double,
+    val isCurrency: Boolean = true
+) {
     val delta: Double get() = current - previous
+    val percentChange: Double? get() = if (previous == 0.0) null else (delta / previous) * 100.0
 }
 
 private data class MonthTotalsRow(
@@ -84,26 +110,37 @@ fun ReportsScreen(state: TrackerState) {
     val focusManager = LocalFocusManager.current
     val exportSuccessText = stringResource(R.string.report_export_success)
     val exportFailedText = stringResource(R.string.report_export_failed)
+    val exportMonthScopeToast = stringResource(R.string.report_export_month_scope_only)
 
     val defaultYear = SimpleDateFormat("yyyy", Locale.GERMANY).format(Date()).toIntOrNull() ?: 2026
+    val currentMonth = SimpleDateFormat("MM", Locale.GERMANY).format(Date()).toIntOrNull() ?: 1
     var selectedYearText by remember { mutableStateOf(defaultYear.toString()) }
     val selectedYear = selectedYearText.toIntOrNull() ?: defaultYear
     val prevYear = selectedYear - 1
 
     var exportScope by remember { mutableStateOf(ReportExportScope.SUMMARY) }
     var exportFormat by remember { mutableStateOf(ReportExportFormat.PDF) }
-    var exportMonth by remember { mutableStateOf(1) }
+    var exportMonth by remember { mutableStateOf(currentMonth) }
     var pendingExport by remember { mutableStateOf<ExportPayload?>(null) }
 
     val monthLabels = monthLabels()
     val monthlyRows = monthlyTotalsForYear(state, selectedYear)
     val previousTotals = totalsForYear(state, prevYear)
     val currentTotals = totalsForYear(state, selectedYear)
+    val previousBookingCount = bookingCountForYear(state, prevYear)
+    val currentBookingCount = bookingCountForYear(state, selectedYear)
     val compareRows = listOf(
-        CompareRow(stringResource(R.string.report_income), previousTotals.first, currentTotals.first),
-        CompareRow(stringResource(R.string.report_expense), previousTotals.second, currentTotals.second),
-        CompareRow(stringResource(R.string.report_balance), previousTotals.first - previousTotals.second, currentTotals.first - currentTotals.second)
+        CompareRow(stringResource(R.string.report_income), previousTotals.first, currentTotals.first, isCurrency = true),
+        CompareRow(stringResource(R.string.report_expense), previousTotals.second, currentTotals.second, isCurrency = true),
+        CompareRow(stringResource(R.string.report_balance), previousTotals.first - previousTotals.second, currentTotals.first - currentTotals.second, isCurrency = true),
+        CompareRow(stringResource(R.string.bookings_section_list), previousBookingCount.toDouble(), currentBookingCount.toDouble(), isCurrency = false)
     )
+
+    LaunchedEffect(exportScope) {
+        if (exportScope == ReportExportScope.MONTH_BOOKINGS) {
+            exportMonth = currentMonth
+        }
+    }
 
     val createDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("*/*")
@@ -174,16 +211,22 @@ fun ReportsScreen(state: TrackerState) {
                         ),
                         onSelected = { exportScope = it }
                     )
-                    if (exportScope == ReportExportScope.MONTH_BOOKINGS) {
-                        ReportSelectField(
-                            label = stringResource(R.string.label_export_month),
-                            selectedLabel = monthLabels.getOrNull(exportMonth - 1) ?: exportMonth.toString(),
-                            options = (1..12).map { m -> (monthLabels.getOrNull(m - 1) ?: m.toString()) to m },
-                            onSelected = { exportMonth = it }
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        ReportSelectField(
+                    ReportSelectField(
+                        label = stringResource(R.string.label_export_month),
+                        selectedLabel = monthLabels.getOrNull(exportMonth - 1) ?: exportMonth.toString(),
+                        options = (1..12).map { m -> (monthLabels.getOrNull(m - 1) ?: m.toString()) to m },
+                        onSelected = { exportMonth = it },
+                        enabled = exportScope == ReportExportScope.MONTH_BOOKINGS,
+                        onDisabledClick = {
+                            Toast.makeText(context, exportMonthScopeToast, Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Bottom,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        ReportFormatButton(
                             label = stringResource(R.string.label_export_format),
                             selectedLabel = when (exportFormat) {
                                 ReportExportFormat.CSV -> "CSV"
@@ -196,11 +239,13 @@ fun ReportsScreen(state: TrackerState) {
                                 "CSV" to ReportExportFormat.CSV
                             ),
                             onSelected = { exportFormat = it },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.width(132.dp)
                         )
                         Button(
                             onClick = { startExport() },
-                            modifier = Modifier.weight(1f).padding(top = 24.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(34.dp)
                         ) {
                             Text(stringResource(R.string.button_export))
                         }
@@ -222,14 +267,7 @@ fun ReportsScreen(state: TrackerState) {
                         )
                     )
                     compareRows.forEach { row ->
-                        TableRow(
-                            listOf(
-                                row.metric,
-                                formatCurrency(row.previous),
-                                formatCurrency(row.current),
-                                formatCurrency(row.delta)
-                            )
-                        )
+                        CompareTableRow(row = row)
                     }
                 }
             }
@@ -263,9 +301,8 @@ fun ReportsScreen(state: TrackerState) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun <T> ReportSelectField(
+private fun <T> ReportFormatButton(
     label: String,
     selectedLabel: String,
     options: List<Pair<String, T>>,
@@ -273,27 +310,119 @@ private fun <T> ReportSelectField(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier.fillMaxWidth()
-    ) {
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+        )
+        Box {
+            OutlinedButton(
+                onClick = { expanded = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(34.dp),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
+            ) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = selectedLabel,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.Center)
+                    )
+                    Icon(
+                        imageVector = Icons.Outlined.KeyboardArrowDown,
+                        contentDescription = label,
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    )
+                }
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                options.forEach { (text, value) ->
+                    DropdownMenuItem(
+                        text = { Text(text) },
+                        onClick = {
+                            onSelected(value)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> ReportSelectField(
+    label: String,
+    selectedLabel: String,
+    options: List<Pair<String, T>>,
+    onSelected: (T) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onDisabledClick: (() -> Unit)? = null
+) {
+    val focusManager = LocalFocusManager.current
+    var expanded by remember { mutableStateOf(false) }
+    Column(modifier = modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = selectedLabel,
             onValueChange = {},
             readOnly = true,
+            enabled = enabled,
             label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            trailingIcon = {
+                IconButton(
+                    enabled = enabled,
+                    onClick = {
+                        if (enabled) {
+                            expanded = !expanded
+                            if (!expanded) focusManager.clearFocus(force = true)
+                        } else {
+                            onDisabledClick?.invoke()
+                        }
+                    }
+                ) {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                }
+            },
             singleLine = true,
-            modifier = Modifier.menuAnchor().fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .alpha(if (enabled) 1f else 0.6f)
+                .clickable(enabled = !enabled) { onDisabledClick?.invoke() }
+                .clickable(enabled = enabled) { expanded = true }
+                .onFocusChanged { focusState ->
+                    if (focusState.isFocused && enabled) expanded = true
+                }
         )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = {
+                expanded = false
+                focusManager.clearFocus(force = true)
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            properties = PopupProperties(focusable = false)
+        ) {
             options.forEach { (text, value) ->
                 DropdownMenuItem(
                     text = { Text(text) },
                     onClick = {
                         onSelected(value)
                         expanded = false
+                        focusManager.clearFocus(force = true)
                     }
                 )
             }
@@ -331,12 +460,69 @@ private fun TableRow(columns: List<String>) {
     }
 }
 
+@Composable
+private fun CompareTableRow(row: CompareRow) {
+    val deltaClassColor = when {
+        row.delta > 0 -> Color(0xFF047857)
+        row.delta < 0 -> Color(0xFFB91C1C)
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    val deltaSign = if (row.delta > 0) "+" else ""
+    val previousText = if (row.isCurrency) formatCurrency(row.previous) else row.previous.toInt().toString()
+    val currentText = if (row.isCurrency) formatCurrency(row.current) else row.current.toInt().toString()
+    val deltaValueText = if (row.isCurrency) {
+        "$deltaSign${formatCurrency(row.delta)}"
+    } else {
+        "$deltaSign${row.delta.toInt()}"
+    }
+    val pctText = row.percentChange?.let {
+        val pctSign = if (it > 0) "+" else ""
+        "$pctSign${String.format(Locale.GERMANY, "%.1f", it)}%"
+    } ?: "-"
+    val changeText = buildAnnotatedString {
+        withStyle(style = SpanStyle(color = deltaClassColor)) {
+            append(deltaValueText)
+        }
+        append(" ($pctText)")
+    }
+
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = row.metric,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            modifier = Modifier.weight(1.2f)
+        )
+        Text(
+            text = previousText,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = currentText,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = changeText,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 2,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
 private fun totalsForYear(state: TrackerState, year: Int): Pair<Double, Double> {
     val entries = state.bookings.filter { it.userId == state.activeUserId && it.date.takeLast(4) == year.toString() }
     val income = entries.filter { it.txType == TxType.INCOME }.sumOf { it.amount }
     val expense = entries.filter { it.txType == TxType.EXPENSE }.sumOf { it.amount }
     return income to expense
 }
+
+private fun bookingCountForYear(state: TrackerState, year: Int): Int =
+    state.bookings.count { it.userId == state.activeUserId && it.date.takeLast(4) == year.toString() }
 
 private fun monthlyTotalsForYear(state: TrackerState, year: Int): List<MonthTotalsRow> {
     val monthLabels = monthLabels()

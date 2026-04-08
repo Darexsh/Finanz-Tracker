@@ -4,12 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.darexsh.finanztracker.domain.BookingDraft
+import com.darexsh.finanztracker.domain.CategoryMutationStatus
 import com.darexsh.finanztracker.domain.TrackerService
 import com.darexsh.finanztracker.model.TrackerState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AppViewModel(
     private val service: TrackerService
@@ -17,9 +23,13 @@ class AppViewModel(
 
     private val _state = MutableStateFlow(service.loadState())
     val state: StateFlow<TrackerState> = _state.asStateFlow()
+    private var syncAutoRefreshJob: Job? = null
+    private var syncAutoRefreshUri: String? = null
+    private val syncAutoRefreshIntervalMs = 5_000L
 
     init {
         autoLoadFromSyncOnStart()
+        startSyncAutoRefreshIfConfigured(_state.value.syncFolderUri)
     }
 
     fun addUser(name: String): Boolean {
@@ -73,6 +83,27 @@ class AppViewModel(
         updateState(newState)
     }
 
+    fun addCustomCategory(name: String): CategoryMutationStatus {
+        val current = _state.value
+        val result = service.addCustomCategory(current, name)
+        result.state?.let { updateState(it) }
+        return result.status
+    }
+
+    fun renameCustomCategory(currentName: String, newName: String): CategoryMutationStatus {
+        val current = _state.value
+        val result = service.renameCustomCategory(current, currentName, newName)
+        result.state?.let { updateState(it) }
+        return result.status
+    }
+
+    fun deleteCustomCategory(name: String): CategoryMutationStatus {
+        val current = _state.value
+        val result = service.deleteCustomCategory(current, name)
+        result.state?.let { updateState(it) }
+        return result.status
+    }
+
     fun setActiveUser(userId: String) {
         val current = _state.value
         val newState = service.setActiveUser(current, userId) ?: return
@@ -83,6 +114,7 @@ class AppViewModel(
         val current = _state.value
         val localState = service.setSyncFolderUri(current, uri)
         updateState(localState, writeSyncFile = false)
+        startSyncAutoRefreshIfConfigured(localState.syncFolderUri)
 
         viewModelScope.launch {
             val synced = service.loadSyncState(uri)
@@ -101,6 +133,7 @@ class AppViewModel(
         val current = _state.value
         val newState = service.clearSyncFolderUri(current)
         updateState(newState, writeSyncFile = false)
+        stopSyncAutoRefresh()
     }
 
     private fun autoLoadFromSyncOnStart() {
@@ -116,6 +149,41 @@ class AppViewModel(
         viewModelScope.launch {
             service.persistState(newState, writeSyncFile = writeSyncFile)
         }
+    }
+
+    private fun startSyncAutoRefreshIfConfigured(syncFolderUri: String?) {
+        val uri = syncFolderUri?.trim().orEmpty()
+        if (uri.isBlank()) {
+            stopSyncAutoRefresh()
+            return
+        }
+        if (syncAutoRefreshJob?.isActive == true && syncAutoRefreshUri == uri) return
+        stopSyncAutoRefresh()
+        syncAutoRefreshUri = uri
+
+        syncAutoRefreshJob = viewModelScope.launch {
+            while (isActive) {
+                runCatching {
+                    val synced = service.loadSyncState(uri) ?: return@runCatching
+                    val merged = synced.copy(syncFolderUri = uri)
+                    val current = _state.value
+                    val hasChanged = withContext(Dispatchers.Default) {
+                        merged != current
+                    }
+                    if (hasChanged) {
+                        _state.value = merged
+                        service.persistLocalState(merged)
+                    }
+                }
+                delay(syncAutoRefreshIntervalMs)
+            }
+        }
+    }
+
+    private fun stopSyncAutoRefresh() {
+        syncAutoRefreshJob?.cancel()
+        syncAutoRefreshJob = null
+        syncAutoRefreshUri = null
     }
 
     @Suppress("UNCHECKED_CAST")

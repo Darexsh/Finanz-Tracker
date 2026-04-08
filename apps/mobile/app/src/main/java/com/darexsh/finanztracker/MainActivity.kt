@@ -35,6 +35,9 @@ class MainActivity : ComponentActivity() {
                     onDeleteBooking = viewModel::deleteBooking,
                     onDeleteBookings = viewModel::deleteBookings,
                     onSetBookingTaxDeclaration = viewModel::setBookingTaxDeclaration,
+                    onAddCustomCategory = viewModel::addCustomCategory,
+                    onRenameCustomCategory = viewModel::renameCustomCategory,
+                    onDeleteCustomCategory = viewModel::deleteCustomCategory,
                     onSyncFolderSelected = viewModel::setSyncFolderUri,
                     onSyncFolderCleared = viewModel::clearSyncFolderUri
                 )

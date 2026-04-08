@@ -6,7 +6,7 @@
     <string name="tab_overview">Übersicht</string>
     <string name="tab_bookings">Buchungen</string>
     <string name="tab_reports">Auswertung</string>
-    <string name="tab_sync">Synchronisierung</string>
+    <string name="tab_sync">Sync</string>
 
     <string name="screen_overview">Übersicht</string>
     <string name="screen_bookings">Buchungen</string>
@@ -16,7 +16,7 @@
     <string name="bookings_section_filter">Filter</string>
     <string name="bookings_section_list">Buchungen</string>
     <string name="bookings_help_new">Neue Buchung erfassen oder bestehenden Eintrag über Bearbeiten anpassen.</string>
-    <string name="bookings_help_filter">Filter greifen sofort auf die Buchungsliste.</string>
+    <string name="bookings_help_filter">Filter greifen sofort auf die Buchungstabelle. Mit \"Reset\" setzt du alle Filter wieder zurück.</string>
     <string name="bookings_selected_count">%1$d ausgewählt</string>
 
     <string name="summary_current_balance">Aktueller Saldo</string>
@@ -27,7 +27,7 @@
     <string name="dashboard_top_categories_month_label">Monat</string>
     <string name="dashboard_top_categories_empty_for_month">Keine Ausgaben in %1$s %2$s. Erfasse eine Ausgabe, um Kategorien zu sehen.</string>
     <string name="dashboard_month_trend_title">Monatsverlauf %1$s</string>
-    <string name="dashboard_trend_legend">Grün = Einnahmen, Rot = Ausgaben</string>
+    <string name="dashboard_trend_legend">Grün = Einnahmen, Rot im Balken = Ausgaben. Klick zeigt Details.</string>
     <string name="dashboard_empty_hint">Noch keine Buchungen vorhanden.</string>
 
     <string name="label_description">Beschreibung</string>
@@ -37,7 +37,8 @@
     <string name="label_account">Konto</string>
     <string name="label_note">Notiz</string>
     <string name="label_tax_declaration">Buchung für Steuererklärung</string>
-    <string name="label_tax_declaration_short">Steuer</string>
+    <string name="label_tax_declaration_short">Steuererklärung</string>
+    <string name="label_select">Auswahl</string>
     <string name="label_report_year">Jahr</string>
 
     <string name="button_save">Speichern</string>
@@ -46,6 +47,13 @@
     <string name="button_edit">Bearbeiten</string>
     <string name="button_delete">Löschen</string>
     <string name="button_cancel">Abbrechen</string>
+    <string name="button_ok">OK</string>
+    <string name="button_reset_filters">Reset</string>
+    <string name="button_new_category">Neue Kategorie</string>
+    <string name="button_rename_category">Kategorie umbenennen</string>
+    <string name="button_delete_category">Kategorie löschen</string>
+    <string name="button_rename_category_short">Umbennen</string>
+    <string name="button_delete_category_short">Löschen</string>
     <string name="button_delete_selected">Ausgewählte löschen (%1$d)</string>
     <string name="button_new_user">Neu</string>
     <string name="button_rename_user">Umbenennen</string>
@@ -57,16 +65,35 @@
     <string name="dialog_add_user_title">Neuer Benutzer</string>
     <string name="dialog_rename_user_title">Benutzer umbenennen</string>
     <string name="dialog_delete_user_title">Benutzer löschen</string>
+    <string name="dialog_rename_category_title">Kategorie umbenennen</string>
+    <string name="dialog_delete_category_title">Kategorie löschen</string>
+    <string name="dialog_category_info_title">Kategorie</string>
     <string name="dialog_user_name_label">Name</string>
+    <string name="dialog_category_name_label">Kategoriename</string>
     <string name="dialog_delete_user_message">Benutzer \"%1$s\" und %2$d Buchungen löschen?</string>
     <string name="dialog_delete_last_user_blocked">Der letzte Benutzer kann nicht gelöscht werden.</string>
+    <string name="dialog_delete_category_message">Kategorie \"%1$s\" löschen?</string>
+    <string name="dialog_delete_category_message_with_usage">Kategorie \"%1$s\" löschen?\n%2$d Buchung(en) werden auf \"Sonstiges\" gesetzt.</string>
+
+    <string name="category_error_empty_name">Bitte einen Kategorienamen eingeben.</string>
+    <string name="category_error_exists">Diese Kategorie existiert bereits.</string>
+    <string name="category_error_builtin_rename">Standard-Kategorien können nicht umbenannt werden.</string>
+    <string name="category_error_builtin_delete">Standard-Kategorien können nicht gelöscht werden.</string>
+    <string name="category_error_not_found">Kategorie nicht gefunden.</string>
+    <string name="validation_error_date_required">Bitte ein Datum eingeben.</string>
+    <string name="validation_error_description_required">Bitte eine Beschreibung eingeben.</string>
+    <string name="validation_error_amount_required">Bitte einen gültigen Betrag eingeben.</string>
 
     <string name="type_income">Einnahme</string>
     <string name="type_expense">Ausgabe</string>
     <string name="filter_type_all">Alle</string>
     <string name="filter_search">Textfilter</string>
+    <string name="filter_month">Monat</string>
+    <string name="filter_year">Jahr</string>
     <string name="filter_category">Kategorie filtern</string>
     <string name="filter_account">Konto filtern</string>
+    <string name="filter_all_months">Alle Monate</string>
+    <string name="filter_all_years">Alle Jahre</string>
     <string name="filter_all_categories">Alle Kategorien</string>
     <string name="filter_all_accounts">Alle Konten</string>
 
@@ -95,19 +122,20 @@
     <string name="label_export_month">Export-Monat</string>
     <string name="button_export">Exportieren</string>
     <string name="export_scope_summary">Jahresübersicht</string>
-    <string name="export_scope_year_comparison">Jahresvergleich</string>
+    <string name="export_scope_year_comparison">Jahresvergleich (Jahr vs. Vorjahr)</string>
     <string name="export_scope_year_bookings">Alle Buchungen im Jahr</string>
     <string name="export_scope_month_bookings">Alle Buchungen im Monat</string>
     <string name="report_export_success">Export gespeichert.</string>
     <string name="report_export_failed">Export fehlgeschlagen.</string>
+    <string name="report_export_month_scope_only">Monat ist nur bei \"Alle Buchungen im Monat\" auswählbar.</string>
 
-    <string name="sync_info_1">Ordnerbasierte Synchronisierung ist auf Android verfügbar.</string>
-    <string name="sync_info_2">Wähle den Sync-Ordner einmal aus. Die App speichert den Zugriff dauerhaft über SAF.</string>
+    <string name="sync_info_1">Hier werden Ordner-Auswahl, Sync-Status und manuelle Sync-Aktionen zentral verwaltet.</string>
+    <string name="sync_info_2">Android-Hinweis: Auf dem Smartphone eine beliebige App für Ordner-Synchronisierung einrichten (z. B. FolderSync, Syncthing oder andere), denselben Cloud-/Netzwerk-Ordner mit einem lokalen Handy-Ordner koppeln und Two-way-Sync aktivieren. Google Drive ist nur eine mögliche Option, nicht verpflichtend.</string>
     <string name="sync_folder_not_set">Noch kein Sync-Ordner ausgewählt.</string>
     <string name="sync_folder_set_label">Ausgewählter Sync-Ordner:</string>
-    <string name="sync_folder_select_button">Ordner auswählen</string>
-    <string name="sync_folder_change_button">Ordner ändern</string>
-    <string name="sync_folder_clear_button">Ordner entfernen</string>
+    <string name="sync_folder_select_button">Auswählen</string>
+    <string name="sync_folder_change_button">Ändern</string>
+    <string name="sync_folder_clear_button">Löschen</string>
     <string name="sync_folder_saved_toast">Sync-Ordner gespeichert.</string>
     <string name="sync_folder_cleared_toast">Sync-Ordner entfernt.</string>
     <string name="sync_folder_permission_failed">Ordner-Berechtigung konnte nicht dauerhaft gespeichert werden.</string>

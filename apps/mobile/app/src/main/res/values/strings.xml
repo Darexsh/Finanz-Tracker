@@ -16,7 +16,7 @@
     <string name="bookings_section_filter">Filter</string>
     <string name="bookings_section_list">Bookings</string>
     <string name="bookings_help_new">Create a new booking or edit an existing one via Edit.</string>
-    <string name="bookings_help_filter">Filters are applied instantly to the booking list.</string>
+    <string name="bookings_help_filter">Filters are applied instantly to the booking table. \"Reset\" clears all filters.</string>
     <string name="bookings_selected_count">%1$d selected</string>
 
     <string name="summary_current_balance">Current Balance</string>
@@ -27,7 +27,7 @@
     <string name="dashboard_top_categories_month_label">Month</string>
     <string name="dashboard_top_categories_empty_for_month">No expenses in %1$s %2$s. Add an expense to see categories.</string>
     <string name="dashboard_month_trend_title">Monthly trend %1$s</string>
-    <string name="dashboard_trend_legend">Green = Income, Red = Expense</string>
+    <string name="dashboard_trend_legend">Green = Income, Red in bar = Expense. Tap shows details.</string>
     <string name="dashboard_empty_hint">No bookings yet.</string>
 
     <string name="label_description">Description</string>
@@ -37,7 +37,8 @@
     <string name="label_account">Account</string>
     <string name="label_note">Note</string>
     <string name="label_tax_declaration">Booking for tax declaration</string>
-    <string name="label_tax_declaration_short">Tax</string>
+    <string name="label_tax_declaration_short">Tax declaration</string>
+    <string name="label_select">Select</string>
     <string name="label_report_year">Year</string>
 
     <string name="button_save">Save</string>
@@ -46,6 +47,13 @@
     <string name="button_edit">Edit</string>
     <string name="button_delete">Delete</string>
     <string name="button_cancel">Cancel</string>
+    <string name="button_ok">OK</string>
+    <string name="button_reset_filters">Reset</string>
+    <string name="button_new_category">New Category</string>
+    <string name="button_rename_category">Rename Category</string>
+    <string name="button_delete_category">Delete Category</string>
+    <string name="button_rename_category_short">Rename</string>
+    <string name="button_delete_category_short">Delete</string>
     <string name="button_delete_selected">Delete selected (%1$d)</string>
     <string name="button_new_user">New</string>
     <string name="button_rename_user">Rename</string>
@@ -57,16 +65,35 @@
     <string name="dialog_add_user_title">New user</string>
     <string name="dialog_rename_user_title">Rename user</string>
     <string name="dialog_delete_user_title">Delete user</string>
+    <string name="dialog_rename_category_title">Rename category</string>
+    <string name="dialog_delete_category_title">Delete category</string>
+    <string name="dialog_category_info_title">Category</string>
     <string name="dialog_user_name_label">Name</string>
+    <string name="dialog_category_name_label">Category name</string>
     <string name="dialog_delete_user_message">Delete user \"%1$s\" and %2$d bookings?</string>
     <string name="dialog_delete_last_user_blocked">The last user cannot be deleted.</string>
+    <string name="dialog_delete_category_message">Delete category \"%1$s\"?</string>
+    <string name="dialog_delete_category_message_with_usage">Delete category \"%1$s\"?\n%2$d booking(s) will be set to \"Other\".</string>
+
+    <string name="category_error_empty_name">Please enter a category name.</string>
+    <string name="category_error_exists">This category already exists.</string>
+    <string name="category_error_builtin_rename">Standard categories cannot be renamed.</string>
+    <string name="category_error_builtin_delete">Standard categories cannot be deleted.</string>
+    <string name="category_error_not_found">Category not found.</string>
+    <string name="validation_error_date_required">Please enter a date.</string>
+    <string name="validation_error_description_required">Please enter a description.</string>
+    <string name="validation_error_amount_required">Please enter a valid amount.</string>
 
     <string name="type_income">Income</string>
     <string name="type_expense">Expense</string>
     <string name="filter_type_all">All</string>
     <string name="filter_search">Filter text</string>
+    <string name="filter_month">Month</string>
+    <string name="filter_year">Year</string>
     <string name="filter_category">Filter category</string>
     <string name="filter_account">Filter account</string>
+    <string name="filter_all_months">All months</string>
+    <string name="filter_all_years">All years</string>
     <string name="filter_all_categories">All categories</string>
     <string name="filter_all_accounts">All accounts</string>
 
@@ -95,19 +122,20 @@
     <string name="label_export_month">Export month</string>
     <string name="button_export">Export</string>
     <string name="export_scope_summary">Year summary</string>
-    <string name="export_scope_year_comparison">Year comparison</string>
+    <string name="export_scope_year_comparison">Year comparison (Year vs Previous year)</string>
     <string name="export_scope_year_bookings">All bookings in year</string>
     <string name="export_scope_month_bookings">All bookings in month</string>
     <string name="report_export_success">Export saved.</string>
     <string name="report_export_failed">Export failed.</string>
+    <string name="report_export_month_scope_only">Month can only be selected for \"All bookings in month\".</string>
 
-    <string name="sync_info_1">Folder-based synchronization is available for Android.</string>
-    <string name="sync_info_2">Pick a sync folder once. The app stores persistent folder access via SAF.</string>
+    <string name="sync_info_1">Folder selection, sync status, and manual sync actions are managed centrally here.</string>
+    <string name="sync_info_2">Android note: Set up any folder-sync app on your smartphone (for example FolderSync, Syncthing, or others), connect the same cloud/network folder with a local phone folder, and enable two-way sync. Google Drive is only one possible option, not mandatory.</string>
     <string name="sync_folder_not_set">No sync folder selected yet.</string>
     <string name="sync_folder_set_label">Selected sync folder:</string>
-    <string name="sync_folder_select_button">Select folder</string>
-    <string name="sync_folder_change_button">Change folder</string>
-    <string name="sync_folder_clear_button">Clear folder</string>
+    <string name="sync_folder_select_button">Select</string>
+    <string name="sync_folder_change_button">Change</string>
+    <string name="sync_folder_clear_button">Delete</string>
     <string name="sync_folder_saved_toast">Sync folder saved.</string>
     <string name="sync_folder_cleared_toast">Sync folder cleared.</string>
     <string name="sync_folder_permission_failed">Folder permission could not be saved persistently.</string>
