@@ -3,75 +3,93 @@ package com.darexsh.finanztracker.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.darexsh.finanztracker.data.StateRepository
-import com.darexsh.finanztracker.model.Booking
+import com.darexsh.finanztracker.domain.BookingDraft
+import com.darexsh.finanztracker.domain.TrackerService
 import com.darexsh.finanztracker.model.TrackerState
-import com.darexsh.finanztracker.model.TxType
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import kotlin.random.Random
 
 class AppViewModel(
-    private val repository: StateRepository
+    private val service: TrackerService
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(repository.loadState())
+    private val _state = MutableStateFlow(service.loadState())
     val state: StateFlow<TrackerState> = _state.asStateFlow()
 
     init {
         autoLoadFromSyncOnStart()
     }
 
-    fun addBooking(
-        description: String,
-        amount: Double,
-        category: String,
-        txType: TxType,
-        account: String,
-        note: String,
-        taxDeclaration: Boolean
-    ) {
+    fun addUser(name: String): Boolean {
         val current = _state.value
-        val activeUser = current.users.firstOrNull { it.id == current.activeUserId } ?: return
-        val booking = Booking(
-            id = "b_" + Random.nextLong().toString(),
-            userId = activeUser.id,
-            date = SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).format(Date()),
-            description = description.trim(),
-            category = category.trim().ifBlank { "Other" },
-            txType = txType,
-            amount = amount,
-            account = account.trim().ifBlank { "Checking Account" },
-            note = note,
-            taxDeclaration = taxDeclaration,
-            createdAt = System.currentTimeMillis()
-        )
+        val newState = service.addUser(current, name) ?: return false
+        updateState(newState)
+        return true
+    }
 
-        updateState(current.copy(bookings = listOf(booking) + current.bookings))
+    fun renameActiveUser(newName: String): Boolean {
+        val current = _state.value
+        val newState = service.renameActiveUser(current, newName) ?: return false
+        updateState(newState)
+        return true
+    }
+
+    fun deleteActiveUser(): Boolean {
+        val current = _state.value
+        val newState = service.deleteActiveUser(current) ?: return false
+        updateState(newState)
+        return true
+    }
+
+    fun addBooking(draft: BookingDraft) {
+        val current = _state.value
+        val newState = service.addBooking(current, draft) ?: return
+        updateState(newState)
+    }
+
+    fun updateBooking(bookingId: String, draft: BookingDraft) {
+        val current = _state.value
+        val newState = service.updateBooking(current, bookingId, draft) ?: return
+        updateState(newState)
+    }
+
+    fun deleteBooking(bookingId: String) {
+        val current = _state.value
+        val newState = service.deleteBooking(current, bookingId) ?: return
+        updateState(newState)
+    }
+
+    fun deleteBookings(bookingIds: Set<String>) {
+        val current = _state.value
+        val newState = service.deleteBookings(current, bookingIds) ?: return
+        updateState(newState)
+    }
+
+    fun setBookingTaxDeclaration(bookingId: String, taxDeclaration: Boolean) {
+        val current = _state.value
+        val newState = service.setBookingTaxDeclaration(current, bookingId, taxDeclaration)
+        updateState(newState)
     }
 
     fun setActiveUser(userId: String) {
         val current = _state.value
-        if (current.users.none { it.id == userId }) return
-        updateState(current.copy(activeUserId = userId))
+        val newState = service.setActiveUser(current, userId) ?: return
+        updateState(newState)
     }
 
     fun setSyncFolderUri(uri: String) {
         val current = _state.value
-        updateState(current.copy(syncFolderUri = uri), writeSyncFile = false)
+        val localState = service.setSyncFolderUri(current, uri)
+        updateState(localState, writeSyncFile = false)
 
-        viewModelScope.launch(Dispatchers.IO) {
-            val synced = repository.loadSyncState(uri)
+        viewModelScope.launch {
+            val synced = service.loadSyncState(uri)
             if (synced != null) {
                 val merged = synced.copy(syncFolderUri = uri)
                 _state.value = merged
-                repository.saveState(merged)
+                service.persistLocalState(merged)
             }
             // Important safety rule:
             // Do not write anything on folder selection when loading fails or file is absent.
@@ -81,36 +99,29 @@ class AppViewModel(
 
     fun clearSyncFolderUri() {
         val current = _state.value
-        updateState(current.copy(syncFolderUri = null), writeSyncFile = false)
+        val newState = service.clearSyncFolderUri(current)
+        updateState(newState, writeSyncFile = false)
     }
 
     private fun autoLoadFromSyncOnStart() {
-        val syncUri = _state.value.syncFolderUri ?: return
-
-        viewModelScope.launch(Dispatchers.IO) {
-            val synced = repository.loadSyncState(syncUri) ?: return@launch
-            val merged = synced.copy(syncFolderUri = syncUri)
+        viewModelScope.launch {
+            val merged = service.autoLoadFromSyncOnStart(_state.value) ?: return@launch
             _state.value = merged
-            repository.saveState(merged)
+            service.persistLocalState(merged)
         }
     }
 
     private fun updateState(newState: TrackerState, writeSyncFile: Boolean = true) {
         _state.value = newState
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.saveState(newState)
-
-            val syncUri = newState.syncFolderUri
-            if (writeSyncFile && !syncUri.isNullOrBlank()) {
-                repository.saveSyncState(syncUri, newState)
-            }
+        viewModelScope.launch {
+            service.persistState(newState, writeSyncFile = writeSyncFile)
         }
     }
 
     @Suppress("UNCHECKED_CAST")
-    class Factory(private val repository: StateRepository) : ViewModelProvider.Factory {
+    class Factory(private val service: TrackerService) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return AppViewModel(repository) as T
+            return AppViewModel(service) as T
         }
     }
 }

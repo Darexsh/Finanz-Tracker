@@ -25,7 +25,7 @@ const KEYWORD_MAP = [
   ["simon", "Internet/Handy"], ["simon mobile", "Internet/Handy"], ["internet", "Internet/Handy"], ["handy", "Internet/Handy"],
   ["lidl", "Lebensmittel"], ["aldi", "Lebensmittel"], ["rewe", "Lebensmittel"], ["edeka", "Lebensmittel"], ["einkauf", "Lebensmittel"],
   ["dm", "Drogerie"], ["rossmann", "Drogerie"], ["nagellack", "Drogerie"], ["entfetter", "Drogerie"],
-  ["staubsauger", "Haushalt"], ["schrauben", "Haushalt"], ["regenschirm", "Haushalt"], ["backfolie", "Haushalt"], ["backofenlampe", "Haushalt"], ["batterien", "Haushalt"],
+  ["staubsauger", "Haushalt"], ["schrauben", "Haushalt"], ["regenschirm", "Haushalt"], ["backfolie", "Haushalt"], ["backofenlampe", "Haushalt"], ["batterien", "Haushalt"], ["teelicht", "Haushalt"], ["teelichter", "Haushalt"], ["kerze", "Haushalt"], ["kerzen", "Haushalt"],
   ["bahn", "ÖPNV"], ["deutschlandticket", "ÖPNV"],
   ["tanken", "Auto"], ["tank", "Auto"], ["benzin", "Auto"], ["aral", "Auto"],
   ["parken", "Parken"],
@@ -53,6 +53,7 @@ const CATEGORY_ALIAS_MAP = new Map([
   ["gebuhr", "Steuern/Gebühren"],
   ["beitrage", "Abgaben/Beiträge"],
   ["beiträge", "Abgaben/Beiträge"],
+  ["abgabe", "Abgaben/Beiträge"],
   ["abgaben", "Abgaben/Beiträge"],
   ["verpflegung", "Gastronomie"],
   ["restaurant", "Gastronomie"],
@@ -168,6 +169,7 @@ const el = {
   monthlyChartTooltip: document.getElementById("monthlyChartTooltip"),
   monthlyChartEmpty: document.getElementById("monthlyChartEmpty"),
   dashboardYearSelect: document.getElementById("dashboardYearSelect"),
+  dashboardTopMonthSelect: document.getElementById("dashboardTopMonthSelect"),
 
   bookingForm: document.getElementById("bookingForm"),
   monthInput: document.getElementById("monthInput"),
@@ -941,6 +943,11 @@ function bindEvents() {
       renderDashboard();
     });
   }
+  if (el.dashboardTopMonthSelect) {
+    el.dashboardTopMonthSelect.addEventListener("change", () => {
+      renderDashboard();
+    });
+  }
 
   async function autoSaveSyncFolderPath(folderPath, showErrorDialog = true) {
     if (!hasTauriRuntime()) return false;
@@ -1430,6 +1437,19 @@ function syncDashboardYearSelect(entries) {
   return selected;
 }
 
+function syncDashboardTopMonthSelect() {
+  const select = el.dashboardTopMonthSelect;
+  const currentMonth = new Date().getMonth() + 1;
+  if (!select) return currentMonth;
+
+  const previous = Number(select.value) || currentMonth;
+  select.innerHTML = MONTH_NAMES.map((name, i) => `<option value="${i + 1}">${name}</option>`).join("");
+
+  const selected = previous >= 1 && previous <= 12 ? previous : currentMonth;
+  select.value = String(selected);
+  return selected;
+}
+
 function renderDashboard() {
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -1440,7 +1460,6 @@ function renderDashboard() {
   let totalExpense = 0;
   let monthIncome = 0;
   let monthExpense = 0;
-  const expenseByCategory = new Map();
 
   entries.forEach(entry => {
     const amount = Number(entry.amount) || 0;
@@ -1457,8 +1476,6 @@ function renderDashboard() {
     totalExpense += amount;
     if (parts && parts.yyyy === currentYear && parts.mm === currentMonth) {
       monthExpense += amount;
-      const key = entry.category;
-      expenseByCategory.set(key, (expenseByCategory.get(key) || 0) + amount);
     }
   });
 
@@ -1471,12 +1488,24 @@ function renderDashboard() {
 
   el.statsCards.innerHTML = stats.map(([k, v]) => `<article class="card"><p>${k}</p><h4>${v}</h4></article>`).join("");
 
+  const selectedYear = syncDashboardYearSelect(entries);
+  const selectedTopMonth = syncDashboardTopMonthSelect();
+
+  const expenseByCategory = new Map();
+  entries.forEach(entry => {
+    if (entry.txType !== "Ausgabe") return;
+    const parts = getDateParts(entry.month);
+    if (!parts || parts.yyyy !== selectedYear || parts.mm !== selectedTopMonth) return;
+    const key = entry.category;
+    expenseByCategory.set(key, (expenseByCategory.get(key) || 0) + (Number(entry.amount) || 0));
+  });
+
   const top = Array.from(expenseByCategory.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const emptyMonthLabel = `${MONTH_NAMES[selectedTopMonth - 1]} ${selectedYear}`;
   el.topCategories.innerHTML = top.length
     ? top.map(([k, v]) => `<li>${k}: ${euro(v)}</li>`).join("")
-    : "<li>Keine Ausgaben im aktuellen Monat. Erfasse eine Ausgabe, um Kategorien zu sehen.</li>";
+    : `<li>Keine Ausgaben in ${emptyMonthLabel}. Erfasse eine Ausgabe, um Kategorien zu sehen.</li>`;
 
-  const selectedYear = syncDashboardYearSelect(entries);
   updateMonthlyChartEmptyState(entries, selectedYear);
   renderMonthlyCashflowChart(entries, selectedYear);
 }

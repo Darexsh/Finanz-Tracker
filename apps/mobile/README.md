@@ -13,8 +13,14 @@ Android app workspace for Finanz Tracker.
 - Basic app shell with bottom navigation (Overview/Bookings/Reports/Sync or Übersicht/Buchungen/Auswertung/Synchronisierung, depending on system language).
 - Local JSON state persistence (state.json in app-internal storage).
 - ViewModel-based state handling.
-- Initial booking creation flow.
-- Initial report/year-comparison preview screen.
+- Service layer between ViewModel/UI and repository/data access.
+- Centralized sync API contract (JSON keys, tx-type mapping, date normalization) shared across mobile sync parsing/writing.
+- Shared finance catalog module for categories/accounts/keyword suggestion and category normalization.
+- Multi-user management (select, add, rename, delete with booking cleanup for deleted profile).
+- Booking workflow with create, edit, delete (single and multi-select), type/category/account/text filters, and tax-declaration flag handling.
+- Dashboard with desktop-like KPI cards (including monthly surplus), top-categories month selector, and monthly trend bars.
+- Report screen with desktop-like panel/table structure, selectable year, year-over-year comparison, and monthly income/expense/balance breakdown.
+- Report export with desktop-like scope selection and save dialog (CSV/PDF/XLSX for summary, year-comparison, year-bookings, month-bookings).
 - Sync tab with SAF folder picker (select/change/clear) and persisted URI permission.
 - Read/write of finanz-tracker-sync-latest.json via selected SAF folder URI.
 - Auto-load from sync file on app start and auto-save to sync file on data changes.
@@ -29,9 +35,7 @@ Android app workspace for Finanz Tracker.
 ## Notes
 - Gradle wrapper files are not committed yet; Android Studio can sync using installed/embedded Gradle.
 - For two-way sync tools (for example FolderSync), enable the setting to sync deleted files as well; otherwise deleted files can come back after sync.
+- Release runbook: see `RELEASE.md`.
 
 ## Next Steps
-- Extract shared business logic from desktop into ../../shared/.
-- Implement full multi-user management.
-- Implement booking edit/delete/filter and tax-flag behavior.
-- Implement full report/export parity.
+- Extract cross-platform business logic from desktop and Android into `../../shared/` where language/runtime allows.

@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -66,57 +68,65 @@ fun SyncScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(stringResource(R.string.screen_sync), style = MaterialTheme.typography.headlineSmall)
-        Text(stringResource(R.string.sync_info_1))
-        Text(stringResource(R.string.sync_info_2))
-
-        if (syncFolderUri.isNullOrBlank() || folderDisplayName.isNullOrBlank()) {
-            Text(stringResource(R.string.sync_folder_not_set))
-        } else {
-            Text(stringResource(R.string.sync_folder_set_label))
-            Text(folderDisplayName, style = MaterialTheme.typography.bodySmall)
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.sync_info_1))
+                Text(stringResource(R.string.sync_info_2))
+            }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = { folderPickerLauncher.launch(null) },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    if (syncFolderUri.isNullOrBlank()) {
-                        stringResource(R.string.sync_folder_select_button)
-                    } else {
-                        stringResource(R.string.sync_folder_change_button)
-                    }
-                )
-            }
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (syncFolderUri.isNullOrBlank() || folderDisplayName.isNullOrBlank()) {
+                    Text(stringResource(R.string.sync_folder_not_set))
+                } else {
+                    Text(stringResource(R.string.sync_folder_set_label))
+                    Text(folderDisplayName, style = MaterialTheme.typography.bodySmall)
+                }
 
-            OutlinedButton(
-                onClick = {
-                    if (!syncFolderUri.isNullOrBlank()) {
-                        runCatching {
-                            context.contentResolver.releasePersistableUriPermission(
-                                Uri.parse(syncFolderUri),
-                                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                            )
-                        }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { folderPickerLauncher.launch(null) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            if (syncFolderUri.isNullOrBlank()) {
+                                stringResource(R.string.sync_folder_select_button)
+                            } else {
+                                stringResource(R.string.sync_folder_change_button)
+                            }
+                        )
                     }
-                    onSyncFolderCleared()
-                    Toast.makeText(
-                        context,
-                        context.getString(R.string.sync_folder_cleared_toast),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                },
-                modifier = Modifier.weight(1f),
-                enabled = !syncFolderUri.isNullOrBlank()
-            ) {
-                Text(stringResource(R.string.sync_folder_clear_button))
+
+                    OutlinedButton(
+                        onClick = {
+                            if (!syncFolderUri.isNullOrBlank()) {
+                                runCatching {
+                                    context.contentResolver.releasePersistableUriPermission(
+                                        Uri.parse(syncFolderUri),
+                                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                                    )
+                                }
+                            }
+                            onSyncFolderCleared()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.sync_folder_cleared_toast),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = !syncFolderUri.isNullOrBlank()
+                    ) {
+                        Text(stringResource(R.string.sync_folder_clear_button))
+                    }
+                }
             }
         }
     }

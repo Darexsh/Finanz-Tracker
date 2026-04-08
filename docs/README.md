@@ -7,11 +7,11 @@ Optional supporting project documentation.
 - Release checklists
 - Troubleshooting guides
 - Migration and setup guides
+- Backup/restore runbooks
 
 ## Current Status
-- Minimal docs folder scaffold
+- Active docs for troubleshooting and backup/restore
 
 ## What Can Be Added Next
 - Android architecture notes
-- Release/installer runbooks
 - Data sync troubleshooting matrix

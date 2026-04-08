@@ -71,23 +71,26 @@
 - [x] SAF-Ordnerauswahl für Sync-Ordner implementiert (persistente URI-Permissions).
 - [x] `finanz-tracker-sync-latest.json` auf Android lesen/schreiben (gleicher Dateiname/Schema wie Desktop).
 - [x] Auto-Load beim Start + Auto-Save bei Änderungen auf Android analog Desktop umgesetzt.
-- [ ] Service-Schicht entkoppeln (UI vs. Datenzugriff klar trennen).
-- [ ] Datenmodell und Validierung in gemeinsam nutzbare Module überführen.
-- [ ] Buchungen auf Desktop-Niveau bringen (Bearbeiten, Löschen, Mehrfachauswahl, Filter).
-- [ ] Auswertung auf Desktop-Niveau bringen (inkl. Jahresvergleich-Logik).
-- [ ] API-Verträge für mobile Nutzung festziehen.
-- [ ] Build- und Release-Prozess für Android definieren.
+- [x] Service-Schicht entkoppeln (UI vs. Datenzugriff klar trennen).
+- [x] Datenmodell und Validierung in gemeinsam nutzbare Module überführen.
+- [x] Buchungen auf Desktop-Niveau bringen (Bearbeiten, Löschen, Mehrfachauswahl, Filter).
+- [x] Auswertung auf Desktop-Niveau bringen (inkl. Jahresvergleich-Logik).
+- [x] Report-Export auf Android umsetzen (CSV/PDF, inkl. Export-Inhalt-Auswahl wie Desktop).
+- [x] API-Verträge für mobile Nutzung festziehen.
+- [x] Vollständige Multi-User-Verwaltung implementieren.
+- [x] Build- und Release-Prozess für Android definieren.
 
 ## 8. Android - UI-Parity (nach Funktionalität)
 
-- [ ] Design-Tokens von Desktop auf Android übertragen (Farben, Typografie, Spacing).
-- [ ] Formular-/Listenlayout visuell an Desktop angleichen.
-- [ ] Dashboard visuell angleichen (inkl. Graphen-Darstellung im gleichen Stil).
-- [ ] Interaktionsdetails angleichen (Toasts, Fokus, Zustandsfeedback, Empty States).
+- [x] Design-Tokens von Desktop auf Android übertragen (Farben, Typografie, Spacing).
+- [x] Formular-/Listenlayout visuell an Desktop angleichen.
+- [x] Dashboard visuell angleichen (inkl. Graphen-Darstellung im gleichen Stil).
+- [x] Dashboard-Top-Kategorien um eine Monatsauswahl erweitert (Desktop + Android).
+- [x] Interaktionsdetails angleichen (Toasts, Fokus, Zustandsfeedback, Empty States).
 
 ## 9. Release/Operations
 
-- [ ] Versionierung und Changelog-Prozess einführen.
+- [x] Versionierung und Changelog-Prozess einführen.
 - [ ] Windows-Installer-Flow finalisieren (MSI/Signierung optional).
-- [ ] Standard-Backup- und Restore-Anleitung in Doku ergänzen.
-- [ ] Troubleshooting-Guide (häufige Fehler + Fix).
+- [x] Standard-Backup- und Restore-Anleitung in Doku ergänzen.
+- [x] Troubleshooting-Guide (häufige Fehler + Fix).

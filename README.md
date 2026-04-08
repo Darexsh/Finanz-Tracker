@@ -42,9 +42,9 @@ This project is an independent personal/open-source finance tracker.
 🚀 About the Project
 ===================
 
-**Finanz Tracker** is a desktop app to manage personal finances with multiple separated user profiles, fast booking workflows, dashboard insights, yearly reports, and optional cross-device sync via a local sync folder.
+**Finanz Tracker** is an app to manage personal finances with multiple separated user profiles, fast booking workflows, dashboard insights, yearly reports, and optional cross-device sync via a local sync folder.
 
-The app is built with Tauri for desktop and includes an Android app (Kotlin + Compose) with SAF-based sync folder selection plus sync-file auto-load/auto-save groundwork.
+The app is built with Tauri for desktop and includes an Android app (Kotlin + Compose) with SAF-based sync folder selection, sync-file auto-load/auto-save, and an extended bookings workflow (create/edit/delete/filter/tax-flag).
 
 * * *
 
@@ -65,7 +65,7 @@ The app is built with Tauri for desktop and includes an Android app (Kotlin + Co
 
 * 🧷 **Tax declaration flag**: Mark bookings as tax-relevant directly in table; highlighted in yellow.
 
-* 📊 **Dashboard analytics**: KPI cards, top categories, and monthly income/expense chart with tooltip details.
+* 📊 **Dashboard analytics**: KPI cards, selectable month for top categories, and monthly income/expense chart with tooltip details.
 
 * 🧮 **Yearly reports**: Monthly yearly summary plus year-over-year comparison (selected year vs. previous year), and flexible export content: yearly summary, year comparison, all bookings in a selected year, or all bookings in a selected month (CSV, XLSX, PDF with Save dialog). Export feedback is shown as toast notifications. CSV includes metadata and totals.
 
@@ -167,7 +167,7 @@ Typical setup:
 Finanz-Tracker/
 ├─ apps/
 │  ├─ desktop/             # Tauri desktop app (active)
-│  └─ mobile/              # Android app scaffold (Kotlin/Compose, active next phase)
+│  └─ mobile/              # Android app (Kotlin/Compose, active implementation)
 ├─ shared/
 │  ├─ domain/              # shared domain logic (planned)
 │  └─ utils/               # shared utilities (planned)
@@ -213,7 +213,7 @@ Finanz-Tracker/
 
 * Desktop-first product focus until stability goals are finished.
 
-* Android app scaffold is available; implementation phase starts next.
+* Android app is in active implementation with sync, multi-user handling, bookings/report parity, and report export (CSV/PDF/XLSX) available; cross-platform shared-logic extraction and release hardening are still in progress.
 
 * Sync conflict handling is intentionally simple for non-parallel usage.
 

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Finanz Tracker</string>
+    <string name="app_subtitle">Ein Codebase für Desktop und Android</string>
 
     <string name="tab_overview">Übersicht</string>
     <string name="tab_bookings">Buchungen</string>
@@ -11,21 +12,63 @@
     <string name="screen_bookings">Buchungen</string>
     <string name="screen_reports">Auswertung</string>
     <string name="screen_sync">Synchronisierung</string>
+    <string name="bookings_section_new">Neue Buchung</string>
+    <string name="bookings_section_filter">Filter</string>
+    <string name="bookings_section_list">Buchungen</string>
+    <string name="bookings_help_new">Neue Buchung erfassen oder bestehenden Eintrag über Bearbeiten anpassen.</string>
+    <string name="bookings_help_filter">Filter greifen sofort auf die Buchungsliste.</string>
+    <string name="bookings_selected_count">%1$d ausgewählt</string>
 
     <string name="summary_current_balance">Aktueller Saldo</string>
-    <string name="summary_income">Einnahmen</string>
-    <string name="summary_expense">Ausgaben</string>
+    <string name="summary_income">Einnahmen (Monat)</string>
+    <string name="summary_expense">Ausgaben (Monat)</string>
+    <string name="summary_monthly_surplus">Monatsüberschuss</string>
+    <string name="dashboard_top_categories_title">Top Kategorien (Monat)</string>
+    <string name="dashboard_top_categories_month_label">Monat</string>
+    <string name="dashboard_top_categories_empty_for_month">Keine Ausgaben in %1$s %2$s. Erfasse eine Ausgabe, um Kategorien zu sehen.</string>
+    <string name="dashboard_month_trend_title">Monatsverlauf %1$s</string>
+    <string name="dashboard_trend_legend">Grün = Einnahmen, Rot = Ausgaben</string>
+    <string name="dashboard_empty_hint">Noch keine Buchungen vorhanden.</string>
 
     <string name="label_description">Beschreibung</string>
-    <string name="label_amount">Betrag</string>
+    <string name="label_date">Datum (TT.MM.JJJJ)</string>
+    <string name="label_amount">Betrag (€)</string>
     <string name="label_category">Kategorie</string>
     <string name="label_account">Konto</string>
     <string name="label_note">Notiz</string>
+    <string name="label_tax_declaration">Buchung für Steuererklärung</string>
+    <string name="label_tax_declaration_short">Steuer</string>
+    <string name="label_report_year">Jahr</string>
 
     <string name="button_save">Speichern</string>
+    <string name="button_update">Aktualisieren</string>
+    <string name="button_clear">Leeren</string>
+    <string name="button_edit">Bearbeiten</string>
+    <string name="button_delete">Löschen</string>
+    <string name="button_cancel">Abbrechen</string>
+    <string name="button_delete_selected">Ausgewählte löschen (%1$d)</string>
+    <string name="button_new_user">Neu</string>
+    <string name="button_rename_user">Umbenennen</string>
+    <string name="button_delete_user">Benutzer löschen</string>
+    <string name="profile_button_new">Neu</string>
+    <string name="profile_button_rename">Umbennen</string>
+    <string name="profile_button_delete">Löschen</string>
+    <string name="profile_label">Profil</string>
+    <string name="dialog_add_user_title">Neuer Benutzer</string>
+    <string name="dialog_rename_user_title">Benutzer umbenennen</string>
+    <string name="dialog_delete_user_title">Benutzer löschen</string>
+    <string name="dialog_user_name_label">Name</string>
+    <string name="dialog_delete_user_message">Benutzer \"%1$s\" und %2$d Buchungen löschen?</string>
+    <string name="dialog_delete_last_user_blocked">Der letzte Benutzer kann nicht gelöscht werden.</string>
 
     <string name="type_income">Einnahme</string>
     <string name="type_expense">Ausgabe</string>
+    <string name="filter_type_all">Alle</string>
+    <string name="filter_search">Textfilter</string>
+    <string name="filter_category">Kategorie filtern</string>
+    <string name="filter_account">Konto filtern</string>
+    <string name="filter_all_categories">Alle Kategorien</string>
+    <string name="filter_all_accounts">Alle Konten</string>
 
     <string name="default_category">Sonstiges</string>
     <string name="default_account">Girokonto</string>
@@ -39,6 +82,24 @@
     <string name="report_income">Einnahmen</string>
     <string name="report_expense">Ausgaben</string>
     <string name="report_balance">Saldo</string>
+    <string name="report_compare_years">Jahresvergleich: %1$d vs. %2$d</string>
+    <string name="report_monthly_breakdown">Monatsübersicht %1$d</string>
+    <string name="report_panel_title">Jahresauswertung</string>
+    <string name="report_compare_table_title">Jahresvergleich</string>
+    <string name="report_month_table_title">Monate</string>
+    <string name="report_col_metric">Kennzahl</string>
+    <string name="report_col_delta">Veränderung</string>
+    <string name="report_col_month">Monat</string>
+    <string name="label_export_scope">Export-Inhalt</string>
+    <string name="label_export_format">Export-Format</string>
+    <string name="label_export_month">Export-Monat</string>
+    <string name="button_export">Exportieren</string>
+    <string name="export_scope_summary">Jahresübersicht</string>
+    <string name="export_scope_year_comparison">Jahresvergleich</string>
+    <string name="export_scope_year_bookings">Alle Buchungen im Jahr</string>
+    <string name="export_scope_month_bookings">Alle Buchungen im Monat</string>
+    <string name="report_export_success">Export gespeichert.</string>
+    <string name="report_export_failed">Export fehlgeschlagen.</string>
 
     <string name="sync_info_1">Ordnerbasierte Synchronisierung ist auf Android verfügbar.</string>
     <string name="sync_info_2">Wähle den Sync-Ordner einmal aus. Die App speichert den Zugriff dauerhaft über SAF.</string>
