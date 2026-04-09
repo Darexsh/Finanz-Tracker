@@ -1,10 +1,12 @@
 {
   "name": "universal_app",
   "version": "1.0.0",
+  "type": "module",
   "description": "Diese UI ist als responsive Web-App gebaut und eignet sich als gemeinsame Basis für: - Android via Capacitor - Desktop via Tauri oder Electron",
   "main": "app.js",
   "scripts": {
     "prepare:dist": "node scripts/prepare-dist.mjs",
+    "test:regression": "node --test tests/regression.test.mjs",
     "tauri:dev": "npm run prepare:dist && tauri dev",
     "tauri:build": "tauri build"
   },
@@ -15,8 +17,8 @@
     "@tauri-apps/cli": "^2.10.1"
   },
   "dependencies": {
+    "exceljs": "^4.4.0",
     "jspdf": "^4.2.1",
-    "jspdf-autotable": "^5.0.7",
-    "xlsx": "^0.18.5"
+    "jspdf-autotable": "^5.0.7"
   }
 }

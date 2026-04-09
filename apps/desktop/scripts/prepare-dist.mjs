@@ -10,7 +10,7 @@ fs.mkdirSync(dist, { recursive: true });
 fs.mkdirSync(vendorDir, { recursive: true });
 
 const vendorFiles = [
-  ["node_modules/xlsx/dist/xlsx.full.min.js", "vendor/xlsx.full.min.js"],
+  ["node_modules/exceljs/dist/exceljs.min.js", "vendor/exceljs.min.js"],
   ["node_modules/jspdf/dist/jspdf.umd.min.js", "vendor/jspdf.umd.min.js"],
   ["node_modules/jspdf-autotable/dist/jspdf.plugin.autotable.min.js", "vendor/jspdf.plugin.autotable.min.js"]
 ];
@@ -28,6 +28,12 @@ for (const [srcRel, outRel] of vendorFiles) {
 const files = ["index.html", "styles.css", "app.js"];
 for (const file of files) {
   fs.copyFileSync(path.join(root, file), path.join(dist, file));
+}
+
+const modulesSrc = path.join(root, "modules");
+const modulesDest = path.join(dist, "modules");
+if (fs.existsSync(modulesSrc)) {
+  fs.cpSync(modulesSrc, modulesDest, { recursive: true });
 }
 
 const assetsSrc = path.join(root, "assets");

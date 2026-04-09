@@ -1,458 +1,47 @@
+import {
+  DEFAULT_DESKTOP_SETTINGS,
+  START_TABS,
+  DATE_FORMATS,
+  EXPORT_FORMATS,
+  sanitizeDesktopSettings as sanitizeDesktopSettingsModel
+} from "./modules/state.js";
+import {
+  applyDesktopFontSize,
+  formatDateFormatForUi as formatDateFormatForUiModel,
+  applySettingsOptionLabels
+} from "./modules/settings.js";
+import {
+  parseMonth as parseMonthModel,
+  getDateParts as getDatePartsModel,
+  monthSortKey as monthSortKeyModel,
+  formatCanonicalDate as formatCanonicalDateModel,
+  dmyToIsoDate as dmyToIsoDateModel,
+  isoDateToDmy as isoDateToDmyModel
+} from "./modules/bookings.js";
+import { normalizeSyncFolderPath } from "./modules/sync.js";
+import { createReportExporter } from "./modules/reports/export.js";
+import { createReportBuilders } from "./modules/reports/builders.js";
+import { createReportIo } from "./modules/reports/io.js";
+import { createCategorySuggester } from "./modules/suggestions.js";
+import { createFeedback } from "./modules/feedback.js";
+import { MONTH_NAMES, MONTH_NAMES_EN, I18N } from "./modules/i18n.js";
+import {
+  CATEGORIES,
+  ACCOUNTS,
+  sanitizeCustomCategories,
+  allCategories,
+  normalizeCategory,
+  normalizeBookingCategory,
+  categoryLabelForUi as categoryLabelForUiModel,
+  accountLabelForUi as accountLabelForUiModel
+} from "./modules/catalog.js";
+
 const STORAGE_KEY = "finanz-universal-v1";
 const LEGACY_MIGRATED_KEY = "finanz-universal-migrated-to-sqlite-v1";
 const RECOVERY_FALLBACK_KEY = "finanz-universal-recovery-fallback-v1";
 const DAILY_BACKUP_KEY = "finanz-universal-daily-backup-v1";
 const SYNC_LAST_WRITE_KEY = "finanz-universal-sync-last-write-v1";
 const SYNC_LAST_RESTORE_KEY = "finanz-universal-sync-last-restore-v1";
-const DEFAULT_DESKTOP_SETTINGS = Object.freeze({
-  language: "system",
-  dateFormat: "DD.MM.YYYY",
-  currency: "EUR",
-  sortDirection: "desc",
-  startTab: "dashboard",
-  defaultExportFormat: "pdf",
-  keepDateAfterSave: true,
-  categorySuggestions: true,
-  fontSize: "normal",
-  navigationAnimationStyle: "slide",
-  appLockEnabled: false,
-  appLockPin: ""
-});
-
-const CATEGORIES = [
-  "Miete", "Nebenkosten", "Strom/Gas", "Internet/Handy", "Lebensmittel", "Drogerie",
-  "Haushalt", "Mobilität", "Auto", "Parken", "ÖPNV", "Versicherung", "Abgaben/Beiträge",
-  "Gesundheit", "Shopping", "Kleidung", "Elektronik", "Freizeit", "Gaming/Medien",
-  "Gastronomie", "Reisen", "Bildung", "Geschenke", "Kinder", "Haustiere", "Abo",
-  "Steuern/Gebühren", "Gehalt", "Nebenverdienst", "Transfer", "Sonstiges"
-];
-
-const ACCOUNTS = ["Girokonto", "Kreditkarte", "Paypal", "Bargeld", "Extra Konto", "Sonstiges"];
-
-const MONTH_NAMES = [
-  "Januar", "Februar", "März", "April", "Mai", "Juni",
-  "Juli", "August", "September", "Oktober", "November", "Dezember"
-];
-
-const MONTH_NAMES_EN = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-];
-
-const I18N = {
-  de: {
-    heroSubtitle: "Ein Codebase für Desktop und Android",
-    profile: "Profil",
-    add: "Neu",
-    rename: "Umbenennen",
-    delete: "Löschen",
-    dashboard: "Dashboard",
-    bookings: "Buchungen",
-    reports: "Auswertung",
-    sync: "Synchronisierung",
-    settings: "Einstellungen",
-    settingsTitle: "Einstellungen",
-    settingsIntro: "Alle App-Einstellungen sind hier zentral gruppiert.",
-    settingsGroupGeneral: "Allgemein",
-    settingsGroupBehavior: "Buchungsverhalten",
-    settingsGroupAppearance: "Darstellung",
-    settingsGroupSecurity: "Sicherheit",
-    settingsLanguage: "Sprache",
-    settingsDateFormat: "Datumsformat",
-    settingsCurrency: "Währung",
-    settingsSort: "Buchungssortierung",
-    settingsStartTab: "Start-Tab",
-    settingsDefaultExportFormat: "Standard Export-Format",
-    settingsKeepDateAfterSave: "Datum nach Speichern beibehalten",
-    settingsSuggestions: "Kategorie-Vorschläge aktivieren",
-    active: "Aktiv",
-    inactive: "Inaktiv",
-    settingsFontSize: "Schriftgröße",
-    settingsNavigationAnimation: "Navigationsanimation",
-    settingsAppLock: "App-Sperre aktivieren",
-    settingsBackup: "Backup",
-    settingsBackupNote: "Exportiert bzw. importiert den kompletten App-Status (Profile, Buchungen, Kategorien, Einstellungen).",
-    newestFirst: "Neueste zuerst",
-    oldestFirst: "Älteste zuerst",
-    normal: "Normal",
-    large: "Groß",
-    xlarge: "Sehr groß",
-    xxlarge: "Extra groß",
-    lockTitle: "App gesperrt",
-    lockMsg: "Zum Entsperren bitte PIN eingeben.",
-    unlock: "Entsperren",
-    pinPromptSet: "PIN für App-Sperre festlegen (mindestens 4 Zeichen):",
-    pinPromptDisable: "PIN eingeben, um App-Sperre zu deaktivieren:",
-    pinPromptUnlock: "PIN eingeben, um App zu entsperren:",
-    pinMismatch: "PIN ist falsch.",
-    pinTooShort: "PIN ist zu kurz (mindestens 4 Zeichen).",
-    lockEnabled: "App-Sperre aktiviert.",
-    lockDisabled: "App-Sperre deaktiviert.",
-    backupExported: "Backup exportiert",
-    backupImported: "Backup importiert.",
-    exportCanceled: "Export abgebrochen.",
-    backupImportConfirm: "Backup importieren?\nAktuelle Daten werden vollständig überschrieben.",
-    backupImportTitle: "Backup importieren",
-    backupImportError: "Backup konnte nicht importiert werden.\nBitte eine gültige JSON-Datei wählen.",
-    backupTitle: "Backup",
-    datePlaceholder: "02.04.2026",
-    dateLabel: "Datum (TT.MM.JJJJ)",
-    monthAll: "Monat: Alle",
-    yearAll: "Jahr: Alle",
-    categoryAll: "Kategorie: Alle",
-    accountAll: "Konto: Alle",
-    dateInvalid: "Bitte Datum im ausgewählten Datumsformat eingeben.",
-    topCategoriesMonthTitle: "Top Kategorien (Monat)",
-    month: "Monat",
-    monthlyFlowTitle: "Monatsverlauf (Einnahmen und Ausgaben)",
-    year: "Jahr",
-    chartLegend: "Grün = Einnahmen, Rot im Balken = Ausgaben. Hover oder Klick zeigt Details.",
-    newBooking: "Neue Buchung",
-    bookingHelpEdit: "Tipp: Für bestehende Einträge in der Tabelle doppelklicken, anpassen und einfach wieder speichern.",
-    description: "Beschreibung",
-    date: "Datum",
-    category: "Kategorie",
-    amount: "Betrag (€)",
-    type: "Typ",
-    account: "Konto",
-    note: "Notiz",
-    taxDeclarationBooking: "Buchung für Steuererklärung",
-    taxDeclaration: "Steuererklärung",
-    save: "Speichern",
-    clear: "Leeren",
-    manageCategories: "Kategorien verwalten",
-    filter: "Filter",
-    filterHelp: "Filter greifen sofort auf die Buchungstabelle. Mit \"Reset\" setzt du alle Filter wieder zurück.",
-    typeAll: "Typ: Alle",
-    expense: "Ausgabe",
-    income: "Einnahme",
-    search: "Suche",
-    reset: "Reset",
-    bookingsTable: "Buchungen",
-    deleteSelected: "Ausgewählte löschen",
-    selectedCount: "{count} ausgewählt",
-    selectedCountShown: "{count} ausgewählt · {shown}/{total} angezeigt",
-    reportYearlyTitle: "Jahresauswertung",
-    exportContent: "Export-Inhalt",
-    yearSummary: "Jahresübersicht",
-    yearComparison: "Jahresvergleich (Jahr vs. Vorjahr)",
-    allBookingsYear: "Alle Buchungen im Jahr",
-    allBookingsMonth: "Alle Buchungen im Monat",
-    taxBookingsYear: "Steuererklärung-Buchungen im Jahr",
-    export: "Exportieren",
-    metric: "Kennzahl",
-    currentYear: "Aktuelles Jahr",
-    change: "Veränderung",
-    balance: "Saldo",
-    months: "Monate",
-    syncTitle: "Synchronisierung",
-    syncIntro: "Hier werden Ordner-Auswahl, Sync-Status und manuelle Sync-Aktionen zentral verwaltet.",
-    syncAndroidHint: "Android-Hinweis: Auf dem Smartphone eine beliebige App für Ordner-Synchronisierung einrichten (z. B. FolderSync, Syncthing oder andere), denselben Cloud-/Netzwerk-Ordner mit einem lokalen Handy-Ordner koppeln und Two-way-Sync aktivieren. Google Drive ist nur eine mögliche Option, nicht verpflichtend.",
-    syncFolderTitle: "Sync-Ordner",
-    folderPath: "Ordnerpfad",
-    browse: "Durchsuchen",
-    backupNow: "Jetzt sichern",
-    restoreLatest: "Neueste Sicherung laden",
-    backupExportBtn: "Backup exportieren",
-    backupImportBtn: "Backup importieren",
-    about: "Info",
-    appInfoTitle: "App-Info",
-    appInfoVersion: "Version 1.0.0",
-    appInfoDescription: "Finanz Tracker ist eine Finanz-App mit einer gemeinsamen Codebase für Desktop und Android. Sie unterstützt Profile, Buchungen, Auswertungen, Exporte und ordnerbasierte Synchronisierung.",
-    appInfoDeveloper: "Entwickler: Darexsh by Daniel Sichler",
-    appInfoActionsTitle: "Aktionen",
-    appInfoOpenEmail: "E-Mail schreiben",
-    appInfoOpenGithub: "Soziale Medien öffnen",
-    appInfoOpenTelegram: "Telegram-Bot öffnen",
-    appInfoOpenProfile: "GitHub-Profil",
-    appInfoOpenCoffee: "Kaffee spendieren",
-    statusNotConfigured: "Sync: nicht konfiguriert",
-    lastSyncBackup: "Letzte Sync-Sicherung: {value}",
-    lastSyncRestore: "Letzte Wiederherstellung: {value}"
-  },
-  en: {
-    heroSubtitle: "One codebase for desktop and Android",
-    profile: "Profile",
-    add: "New",
-    rename: "Rename",
-    delete: "Delete",
-    dashboard: "Dashboard",
-    bookings: "Bookings",
-    reports: "Reports",
-    sync: "Sync",
-    settings: "Settings",
-    settingsTitle: "Settings",
-    settingsIntro: "All app settings are grouped here in one place.",
-    settingsGroupGeneral: "General",
-    settingsGroupBehavior: "Booking behavior",
-    settingsGroupAppearance: "Appearance",
-    settingsGroupSecurity: "Security",
-    settingsLanguage: "Language",
-    settingsDateFormat: "Date format",
-    settingsCurrency: "Currency",
-    settingsSort: "Booking sort direction",
-    settingsStartTab: "Start tab",
-    settingsDefaultExportFormat: "Default export format",
-    settingsKeepDateAfterSave: "Keep date after save",
-    settingsSuggestions: "Enable category suggestions",
-    active: "Active",
-    inactive: "Inactive",
-    settingsFontSize: "Font size",
-    settingsNavigationAnimation: "Navigation animation",
-    settingsAppLock: "Enable app lock",
-    settingsBackup: "Backup",
-    settingsBackupNote: "Exports or imports the full app state (profiles, bookings, categories, settings).",
-    newestFirst: "Newest first",
-    oldestFirst: "Oldest first",
-    normal: "Normal",
-    large: "Large",
-    xlarge: "Very large",
-    xxlarge: "Extra large",
-    lockTitle: "App locked",
-    lockMsg: "Enter PIN to unlock.",
-    unlock: "Unlock",
-    pinPromptSet: "Set app-lock PIN (minimum 4 characters):",
-    pinPromptDisable: "Enter PIN to disable app lock:",
-    pinPromptUnlock: "Enter PIN to unlock app:",
-    pinMismatch: "PIN is incorrect.",
-    pinTooShort: "PIN is too short (minimum 4 characters).",
-    lockEnabled: "App lock enabled.",
-    lockDisabled: "App lock disabled.",
-    backupExported: "Backup exported",
-    backupImported: "Backup imported.",
-    exportCanceled: "Export canceled.",
-    backupImportConfirm: "Import backup?\nCurrent data will be fully overwritten.",
-    backupImportTitle: "Import backup",
-    backupImportError: "Backup could not be imported.\nPlease select a valid JSON file.",
-    backupTitle: "Backup",
-    datePlaceholder: "04/02/2026",
-    dateLabel: "Date (MM/DD/YYYY)",
-    monthAll: "Month: All",
-    yearAll: "Year: All",
-    categoryAll: "Category: All",
-    accountAll: "Account: All",
-    dateInvalid: "Please enter a date in the selected date format.",
-    topCategoriesMonthTitle: "Top Categories (Month)",
-    month: "Month",
-    monthlyFlowTitle: "Monthly Flow (Income and Expense)",
-    year: "Year",
-    chartLegend: "Green = income, red in bar = expense. Hover or click shows details.",
-    newBooking: "New Booking",
-    bookingHelpEdit: "Tip: Double-click an existing table row, adjust values, then save again.",
-    description: "Description",
-    date: "Date",
-    category: "Category",
-    amount: "Amount (€)",
-    type: "Type",
-    account: "Account",
-    note: "Note",
-    taxDeclarationBooking: "Booking for tax declaration",
-    taxDeclaration: "Tax Declaration",
-    save: "Save",
-    clear: "Clear",
-    manageCategories: "Manage categories",
-    filter: "Filter",
-    filterHelp: "Filters apply instantly to the bookings table. Use \"Reset\" to clear all filters.",
-    typeAll: "Type: All",
-    expense: "Expense",
-    income: "Income",
-    search: "Search",
-    reset: "Reset",
-    bookingsTable: "Bookings",
-    deleteSelected: "Delete selected",
-    selectedCount: "{count} selected",
-    selectedCountShown: "{count} selected · {shown}/{total} shown",
-    reportYearlyTitle: "Yearly Report",
-    exportContent: "Export Content",
-    yearSummary: "Year Summary",
-    yearComparison: "Year Comparison (Year vs. Previous Year)",
-    allBookingsYear: "All Bookings in Year",
-    allBookingsMonth: "All Bookings in Month",
-    taxBookingsYear: "Tax-Declaration Bookings in Year",
-    export: "Export",
-    metric: "Metric",
-    currentYear: "Current Year",
-    change: "Change",
-    balance: "Balance",
-    months: "Months",
-    syncTitle: "Sync",
-    syncIntro: "Folder selection, sync status, and manual sync actions are managed here.",
-    syncAndroidHint: "Android note: Set up any folder-sync app on your smartphone (for example FolderSync, Syncthing, or others), connect the same cloud/network folder with a local phone folder, and enable two-way sync. Google Drive is only one possible option, not required.",
-    syncFolderTitle: "Sync Folder",
-    folderPath: "Folder Path",
-    browse: "Browse",
-    backupNow: "Backup Now",
-    restoreLatest: "Restore Latest Backup",
-    backupExportBtn: "Export Backup",
-    backupImportBtn: "Import Backup",
-    about: "About",
-    appInfoTitle: "App info",
-    appInfoVersion: "Version 1.0.0",
-    appInfoDescription: "Finanz Tracker is a finance app with one shared codebase for Desktop and Android. It supports profiles, bookings, reports, exports, and folder-based sync.",
-    appInfoDeveloper: "Developer: Darexsh by Daniel Sichler",
-    appInfoActionsTitle: "Actions",
-    appInfoOpenEmail: "Write email",
-    appInfoOpenGithub: "Open social media",
-    appInfoOpenTelegram: "Open Telegram bot",
-    appInfoOpenProfile: "GitHub profile",
-    appInfoOpenCoffee: "Buy me a coffee",
-    statusNotConfigured: "Sync: not configured",
-    lastSyncBackup: "Last sync backup: {value}",
-    lastSyncRestore: "Last restore: {value}"
-  }
-};
-
-const KEYWORD_MAP = [
-  ["miete", "Miete"], ["nebenkosten", "Nebenkosten"], ["strom", "Strom/Gas"], ["gas", "Strom/Gas"],
-  ["simon", "Internet/Handy"], ["simon mobile", "Internet/Handy"], ["internet", "Internet/Handy"], ["handy", "Internet/Handy"],
-  ["lidl", "Lebensmittel"], ["aldi", "Lebensmittel"], ["rewe", "Lebensmittel"], ["edeka", "Lebensmittel"], ["einkauf", "Lebensmittel"],
-  ["dm", "Drogerie"], ["rossmann", "Drogerie"], ["nagellack", "Drogerie"], ["entfetter", "Drogerie"],
-  ["staubsauger", "Haushalt"], ["schrauben", "Haushalt"], ["regenschirm", "Haushalt"], ["backfolie", "Haushalt"], ["backofenlampe", "Haushalt"], ["batterien", "Haushalt"], ["teelicht", "Haushalt"], ["teelichter", "Haushalt"], ["kerze", "Haushalt"], ["kerzen", "Haushalt"],
-  ["bahn", "ÖPNV"], ["deutschlandticket", "ÖPNV"],
-  ["tanken", "Auto"], ["tank", "Auto"], ["benzin", "Auto"], ["aral", "Auto"],
-  ["parken", "Parken"],
-  ["versicherung", "Versicherung"], ["rechtsschutz", "Versicherung"], ["adac", "Versicherung"], ["zahnzusatz", "Versicherung"], ["auslandskrankenversicherung", "Versicherung"],
-  ["gez", "Abgaben/Beiträge"], ["rundfunk", "Abgaben/Beiträge"],
-  ["arzt", "Gesundheit"], ["apotheke", "Gesundheit"], ["zahn", "Gesundheit"],
-  ["temu", "Shopping"], ["shein", "Shopping"], ["aliexpress", "Shopping"], ["banggood", "Shopping"], ["tedi", "Shopping"], ["action", "Shopping"], ["amazon", "Shopping"],
-  ["socken", "Kleidung"], ["schuhe", "Kleidung"], ["jacke", "Kleidung"], ["winterjacke", "Kleidung"],
-  ["pc", "Elektronik"], ["cpu", "Elektronik"], ["kühler", "Elektronik"], ["splitter", "Elektronik"], ["sata", "Elektronik"], ["tapo", "Elektronik"], ["etikettierer", "Elektronik"],
-  ["solo leveling", "Gaming/Medien"], ["geisterakten", "Gaming/Medien"],
-  ["too good to go", "Gastronomie"], ["burger king", "Gastronomie"], ["mcdonald", "Gastronomie"], ["essen", "Gastronomie"], ["schaschlik", "Gastronomie"], ["holy", "Gastronomie"],
-  ["urlaub", "Reisen"],
-  ["geschenk", "Geschenke"],
-  ["netflix", "Abo"], ["spotify", "Abo"], ["chatgpt", "Abo"], ["chatgpt plus", "Abo"],
-  ["gehalt", "Gehalt"], ["arbeit", "Gehalt"],
-  ["extra konto", "Transfer"], ["paypal", "Transfer"]
-];
-
-const CATEGORY_ALIAS_MAP = new Map([
-  ["mobilitaet", "Mobilität"],
-  ["mobilität", "Mobilität"],
-  ["gebuhren", "Steuern/Gebühren"],
-  ["gebühren", "Steuern/Gebühren"],
-  ["steuern", "Steuern/Gebühren"],
-  ["gebuhr", "Steuern/Gebühren"],
-  ["beitrage", "Abgaben/Beiträge"],
-  ["beiträge", "Abgaben/Beiträge"],
-  ["abgabe", "Abgaben/Beiträge"],
-  ["abgaben", "Abgaben/Beiträge"],
-  ["verpflegung", "Gastronomie"],
-  ["restaurant", "Gastronomie"],
-  ["food", "Gastronomie"],
-  ["markt", "Lebensmittel"],
-  ["supermarkt", "Lebensmittel"],
-  ["technik", "Elektronik"],
-  ["hardware", "Elektronik"],
-  ["kleider", "Kleidung"],
-  ["mode", "Kleidung"],
-  ["sonstige", "Sonstiges"]
-]);
-
-const CATEGORY_LABEL_EN = new Map([
-  ["Miete", "Rent"],
-  ["Nebenkosten", "Utilities"],
-  ["Strom/Gas", "Electricity/Gas"],
-  ["Internet/Handy", "Internet/Phone"],
-  ["Lebensmittel", "Groceries"],
-  ["Drogerie", "Drugstore"],
-  ["Haushalt", "Household"],
-  ["Mobilität", "Mobility"],
-  ["Auto", "Car"],
-  ["Parken", "Parking"],
-  ["ÖPNV", "Public Transport"],
-  ["Versicherung", "Insurance"],
-  ["Abgaben/Beiträge", "Fees/Contributions"],
-  ["Gesundheit", "Health"],
-  ["Shopping", "Shopping"],
-  ["Kleidung", "Clothing"],
-  ["Elektronik", "Electronics"],
-  ["Freizeit", "Leisure"],
-  ["Gaming/Medien", "Gaming/Media"],
-  ["Gastronomie", "Dining"],
-  ["Reisen", "Travel"],
-  ["Bildung", "Education"],
-  ["Geschenke", "Gifts"],
-  ["Kinder", "Children"],
-  ["Haustiere", "Pets"],
-  ["Abo", "Subscription"],
-  ["Steuern/Gebühren", "Taxes/Fees"],
-  ["Gehalt", "Salary"],
-  ["Nebenverdienst", "Side Income"],
-  ["Transfer", "Transfer"],
-  ["Sonstiges", "Other"]
-]);
-
-const ACCOUNT_LABEL_EN = new Map([
-  ["Girokonto", "Checking Account"],
-  ["Kreditkarte", "Credit Card"],
-  ["Paypal", "PayPal"],
-  ["Bargeld", "Cash"],
-  ["Extra Konto", "Extra Account"],
-  ["Sonstiges", "Other"]
-]);
-
-function sanitizeCustomCategories(list) {
-  if (!Array.isArray(list)) return [];
-  const seen = new Set();
-  const result = [];
-
-  list.forEach(item => {
-    const name = String(item || "").trim();
-    if (!name) return;
-    if (CATEGORIES.includes(name)) return;
-    const key = name.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    result.push(name);
-  });
-
-  result.sort((a, b) => a.localeCompare(b, "de"));
-  return result;
-}
-
-function allCategories(customCategories = []) {
-  const merged = [...CATEGORIES, ...sanitizeCustomCategories(customCategories)];
-  const seen = new Set();
-  return merged.filter(item => {
-    const key = item.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function normalizeCategory(value, customCategories = []) {
-  const raw = String(value || "").trim();
-  if (!raw) return "Sonstiges";
-
-  const categories = allCategories(customCategories);
-  if (categories.includes(raw)) return raw;
-  const caseMatch = categories.find(item => item.toLowerCase() === raw.toLowerCase());
-  if (caseMatch) return caseMatch;
-
-  const simple = raw
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-zA-Z0-9/ ]+/g, "")
-    .toLowerCase()
-    .trim();
-
-  if (CATEGORY_ALIAS_MAP.has(simple)) {
-    return CATEGORY_ALIAS_MAP.get(simple) || "Sonstiges";
-  }
-
-  const mappedByKeyword = KEYWORD_MAP.find(([keyword]) => simple.includes(keyword));
-  if (mappedByKeyword) return mappedByKeyword[1];
-
-  return "Sonstiges";
-}
-
-function normalizeBookingCategory(entry, customCategories = []) {
-  if (!entry || typeof entry !== "object") return entry;
-  return { ...entry, category: normalizeCategory(entry.category, customCategories) };
-}
-
 
 const state = createDefaultState();
 let stateReady = false;
@@ -580,6 +169,12 @@ const el = {
 };
 
 const BOOKING_VALIDATION_FIELDS = ["monthInput", "descriptionInput", "amountInput"];
+const feedback = createFeedback({
+  elements: el,
+  getLangCode: resolvedLangCode,
+  t
+});
+const { showDialog, showToast, showInfo, askConfirm, askText } = feedback;
 
 init().catch(err => {
   console.error("Init fehlgeschlagen", err);
@@ -623,47 +218,7 @@ function createDefaultState() {
 }
 
 function sanitizeDesktopSettings(raw) {
-  const source = raw && typeof raw === "object" ? raw : {};
-  const language = ["system", "de", "en"].includes(String(source.language || "system"))
-    ? String(source.language || "system")
-    : DEFAULT_DESKTOP_SETTINGS.language;
-  const dateFormat = ["DD.MM.YYYY", "YYYY-MM-DD", "MM/DD/YYYY"].includes(String(source.dateFormat))
-    ? String(source.dateFormat)
-    : DEFAULT_DESKTOP_SETTINGS.dateFormat;
-  const currency = ["EUR", "USD"].includes(String(source.currency || "").toUpperCase())
-    ? String(source.currency).toUpperCase()
-    : DEFAULT_DESKTOP_SETTINGS.currency;
-  const sortDirection = source.sortDirection === "asc" ? "asc" : "desc";
-  const startTab = ["dashboard", "bookings", "reports", "synchronisierung", "settings", "info"].includes(String(source.startTab || ""))
-    ? String(source.startTab)
-    : DEFAULT_DESKTOP_SETTINGS.startTab;
-  const defaultExportFormat = ["pdf", "xlsx", "csv"].includes(String(source.defaultExportFormat || "").toLowerCase())
-    ? String(source.defaultExportFormat).toLowerCase()
-    : DEFAULT_DESKTOP_SETTINGS.defaultExportFormat;
-  const keepDateAfterSave = source.keepDateAfterSave !== false;
-  const categorySuggestions = source.categorySuggestions !== false;
-  const fontSize = ["normal", "large", "xlarge", "xxlarge"].includes(String(source.fontSize))
-    ? String(source.fontSize)
-    : "normal";
-  const navigationAnimationStyle = ["slide", "fade", "zoom", "pop", "rotate", "none"].includes(String(source.navigationAnimationStyle || "").toLowerCase())
-    ? String(source.navigationAnimationStyle).toLowerCase()
-    : DEFAULT_DESKTOP_SETTINGS.navigationAnimationStyle;
-  const appLockEnabled = source.appLockEnabled === true;
-  const appLockPin = typeof source.appLockPin === "string" ? source.appLockPin : "";
-  return {
-    language,
-    dateFormat,
-    currency,
-    sortDirection,
-    startTab,
-    defaultExportFormat,
-    keepDateAfterSave,
-    categorySuggestions,
-    fontSize,
-    navigationAnimationStyle,
-    appLockEnabled,
-    appLockPin
-  };
+  return sanitizeDesktopSettingsModel(raw);
 }
 
 function desktopSettings() {
@@ -674,13 +229,7 @@ function desktopSettings() {
 }
 
 function applyDesktopSettings() {
-  const settings = desktopSettings();
-  const root = document.documentElement;
-  let rootFontSize = "16px";
-  if (settings.fontSize === "large") rootFontSize = "18px";
-  if (settings.fontSize === "xlarge") rootFontSize = "20px";
-  if (settings.fontSize === "xxlarge") rootFontSize = "22px";
-  root.style.fontSize = rootFontSize;
+  applyDesktopFontSize(document.documentElement, desktopSettings().fontSize);
 }
 
 function resolvedLangCode() {
@@ -707,15 +256,11 @@ function monthNamesForUi() {
 }
 
 function categoryLabelForUi(categoryName) {
-  const raw = String(categoryName || "");
-  if (resolvedLangCode() !== "en") return raw;
-  return CATEGORY_LABEL_EN.get(raw) || raw;
+  return categoryLabelForUiModel(String(categoryName || ""), resolvedLangCode() === "en");
 }
 
 function accountLabelForUi(accountName) {
-  const raw = String(accountName || "");
-  if (resolvedLangCode() !== "en") return raw;
-  return ACCOUNT_LABEL_EN.get(raw) || raw;
+  return accountLabelForUiModel(String(accountName || ""), resolvedLangCode() === "en");
 }
 
 function txTypeLabelForUi(txType) {
@@ -723,15 +268,7 @@ function txTypeLabelForUi(txType) {
 }
 
 function formatCanonicalDate(canonicalDate) {
-  const p = getDateParts(canonicalDate);
-  if (!p) return String(canonicalDate || "");
-  if (desktopSettings().dateFormat === "YYYY-MM-DD") {
-    return `${String(p.yyyy).padStart(4, "0")}-${String(p.mm).padStart(2, "0")}-${String(p.dd).padStart(2, "0")}`;
-  }
-  if (desktopSettings().dateFormat === "MM/DD/YYYY") {
-    return `${String(p.mm).padStart(2, "0")}/${String(p.dd).padStart(2, "0")}/${String(p.yyyy).padStart(4, "0")}`;
-  }
-  return `${String(p.dd).padStart(2, "0")}.${String(p.mm).padStart(2, "0")}.${String(p.yyyy).padStart(4, "0")}`;
+  return formatCanonicalDateModel(canonicalDate, desktopSettings().dateFormat);
 }
 
 function applyLanguageToUi() {
@@ -887,45 +424,16 @@ function applyLanguageToUi() {
   if (el.fSearch) el.fSearch.placeholder = t("search");
   if (el.typeExpenseOption) el.typeExpenseOption.textContent = t("expense");
   if (el.typeIncomeOption) el.typeIncomeOption.textContent = t("income");
-  if (el.settingsSortDirection?.options?.length >= 2) {
-    el.settingsSortDirection.options[0].textContent = t("newestFirst");
-    el.settingsSortDirection.options[1].textContent = t("oldestFirst");
+  if (el.settingsDateFormat?.options?.length >= DATE_FORMATS.length) {
+    for (let i = 0; i < DATE_FORMATS.length; i += 1) {
+      el.settingsDateFormat.options[i].textContent = formatDateFormatForUi(DATE_FORMATS[i]);
+    }
   }
-  if (el.settingsDateFormat?.options?.length >= 3) {
-    el.settingsDateFormat.options[0].textContent = formatDateFormatForUi("DD.MM.YYYY");
-    el.settingsDateFormat.options[1].textContent = formatDateFormatForUi("YYYY-MM-DD");
-    el.settingsDateFormat.options[2].textContent = formatDateFormatForUi("MM/DD/YYYY");
-  }
-  if (el.settingsStartTab?.options?.length >= 6) {
-    el.settingsStartTab.options[0].textContent = t("dashboard");
-    el.settingsStartTab.options[1].textContent = t("bookings");
-    el.settingsStartTab.options[2].textContent = t("reports");
-    el.settingsStartTab.options[3].textContent = t("sync");
-    el.settingsStartTab.options[4].textContent = t("settings");
-    el.settingsStartTab.options[5].textContent = t("about");
-  }
-  if (el.settingsCategorySuggestions?.options?.length >= 2) {
-    el.settingsCategorySuggestions.options[0].textContent = t("active");
-    el.settingsCategorySuggestions.options[1].textContent = t("inactive");
-  }
-  if (el.settingsKeepDateAfterSave?.options?.length >= 2) {
-    el.settingsKeepDateAfterSave.options[0].textContent = t("active");
-    el.settingsKeepDateAfterSave.options[1].textContent = t("inactive");
-  }
-  if (el.settingsNavigationAnimationStyle?.options?.length >= 6) {
-    el.settingsNavigationAnimationStyle.options[0].textContent = "Slide";
-    el.settingsNavigationAnimationStyle.options[1].textContent = "Fade";
-    el.settingsNavigationAnimationStyle.options[2].textContent = "Zoom";
-    el.settingsNavigationAnimationStyle.options[3].textContent = "Pop";
-    el.settingsNavigationAnimationStyle.options[4].textContent = "Rotate";
-    el.settingsNavigationAnimationStyle.options[5].textContent = resolvedLangCode() === "en" ? "None" : "Keine";
-  }
-  if (el.settingsFontSize?.options?.length >= 4) {
-    el.settingsFontSize.options[0].textContent = t("normal");
-    el.settingsFontSize.options[1].textContent = t("large");
-    el.settingsFontSize.options[2].textContent = t("xlarge");
-    el.settingsFontSize.options[3].textContent = t("xxlarge");
-  }
+  applySettingsOptionLabels({
+    el,
+    t,
+    isEnglish: resolvedLangCode() === "en"
+  });
   if (el.settingsBackupTitle) el.settingsBackupTitle.textContent = t("backupTitle");
   if (el.fMonth?.options?.length) {
     el.fMonth.options[0].textContent = t("monthAll");
@@ -1410,7 +918,7 @@ function resetFilters() {
 
 function activateTab(tabId, options = {}) {
   const { animate = true } = options;
-  const nextId = ["dashboard", "bookings", "reports", "synchronisierung", "settings", "info"].includes(tabId)
+  const nextId = START_TABS.includes(tabId)
     ? tabId
     : "dashboard";
   const nextPanel = document.getElementById(nextId);
@@ -1791,7 +1299,7 @@ function bindEvents() {
   async function autoSaveSyncFolderPath(folderPath, showErrorDialog = true) {
     if (!hasTauriRuntime()) return false;
 
-    const trimmed = String(folderPath || "").trim();
+    const trimmed = normalizeSyncFolderPath(folderPath);
     if (!trimmed) return false;
 
     try {
@@ -1821,8 +1329,9 @@ function bindEvents() {
     try {
       const selected = await tryInvokeTauriCommand("sync_pick_folder", {});
       if (!selected || typeof selected !== "string") return;
-      el.syncFolderInput.value = selected;
-      await autoSaveSyncFolderPath(selected, true);
+      const normalized = normalizeSyncFolderPath(selected);
+      el.syncFolderInput.value = normalized;
+      await autoSaveSyncFolderPath(normalized, true);
     } catch (err) {
       await showInfo(
         (resolvedLangCode() === "en" ? "Folder selection failed:\n" : "Ordnerauswahl fehlgeschlagen:\n") + String(err),
@@ -1832,7 +1341,7 @@ function bindEvents() {
   });
 
   el.syncFolderInput.addEventListener("change", async () => {
-    const folderPath = (el.syncFolderInput?.value || "").trim();
+    const folderPath = normalizeSyncFolderPath(el.syncFolderInput?.value || "");
     if (!folderPath) return;
     await autoSaveSyncFolderPath(folderPath, true);
   });
@@ -2204,56 +1713,11 @@ function bindEvents() {
 }
 
 function parseMonth(value) {
-  const t = String(value).trim();
-
-  const de = t.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-  if (de) {
-    const dd = Number(de[1]);
-    const mm = Number(de[2]);
-    const yyyy = Number(de[3]);
-    if (dd < 1 || dd > 31 || mm < 1 || mm > 12 || yyyy < 2000 || yyyy > 2100) return null;
-    return String(dd).padStart(2, "0") + "." + String(mm).padStart(2, "0") + "." + yyyy;
-  }
-
-  const en = t.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (en) {
-    const mm = Number(en[1]);
-    const dd = Number(en[2]);
-    const yyyy = Number(en[3]);
-    if (dd < 1 || dd > 31 || mm < 1 || mm > 12 || yyyy < 2000 || yyyy > 2100) return null;
-    return String(dd).padStart(2, "0") + "." + String(mm).padStart(2, "0") + "." + yyyy;
-  }
-
-  const ymd = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (ymd) {
-    const yyyy = Number(ymd[1]);
-    const mm = Number(ymd[2]);
-    const dd = Number(ymd[3]);
-    if (dd < 1 || dd > 31 || mm < 1 || mm > 12 || yyyy < 2000 || yyyy > 2100) return null;
-    return String(dd).padStart(2, "0") + "." + String(mm).padStart(2, "0") + "." + yyyy;
-  }
-
-  const legacy = t.match(/^(\d{2})\.(\d{4})$/);
-  if (legacy) {
-    const mm = Number(legacy[1]);
-    const yyyy = Number(legacy[2]);
-    if (mm < 1 || mm > 12 || yyyy < 2000 || yyyy > 2100) return null;
-    return "01." + String(mm).padStart(2, "0") + "." + yyyy;
-  }
-
-  return null;
+  return parseMonthModel(value);
 }
 
 function getDateParts(dateStr) {
-  const normalized = parseMonth(dateStr);
-  if (!normalized) return null;
-  const parts = normalized.split(".");
-  return {
-    dd: Number(parts[0]),
-    mm: Number(parts[1]),
-    yyyy: Number(parts[2]),
-    normalized
-  };
+  return getDatePartsModel(dateStr);
 }
 
 function monthYearKey(dateStr) {
@@ -2271,122 +1735,27 @@ function parseYear(value) {
 }
 
 function monthSortKey(dateStr) {
-  const p = getDateParts(dateStr);
-  if (!p) return 0;
-  return p.yyyy * 10000 + p.mm * 100 + p.dd;
+  return monthSortKeyModel(dateStr);
 }
 
 function dmyToIsoDate(dmy) {
-  const p = getDateParts(dmy);
-  if (!p) return "";
-  return `${String(p.yyyy).padStart(4, "0")}-${String(p.mm).padStart(2, "0")}-${String(p.dd).padStart(2, "0")}`;
+  return dmyToIsoDateModel(dmy);
 }
 
 function formatDateFormatForUi(format) {
-  const isEnglish = resolvedLangCode() === "en";
-  if (format === "YYYY-MM-DD") return isEnglish ? "YYYY-MM-DD" : "JJJJ-MM-TT";
-  if (format === "MM/DD/YYYY") return isEnglish ? "MM/DD/YYYY" : "MM/TT/JJJJ";
-  return isEnglish ? "DD.MM.YYYY" : "TT.MM.JJJJ";
+  return formatDateFormatForUiModel(format, resolvedLangCode() === "en");
 }
 
 function isoDateToDmy(iso) {
-  const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!m) return null;
-  const yyyy = Number(m[1]);
-  const mm = Number(m[2]);
-  const dd = Number(m[3]);
-  if (yyyy < 2000 || yyyy > 2100 || mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
-  return `${String(dd).padStart(2, "0")}.${String(mm).padStart(2, "0")}.${String(yyyy).padStart(4, "0")}`;
+  return isoDateToDmyModel(iso);
 }
 
-const LEARNED_CATEGORY_STOPWORDS = new Set([
-  "der", "die", "das", "den", "dem", "ein", "eine", "einer", "einem", "und", "oder",
-  "mit", "ohne", "von", "für", "fuer", "auf", "im", "in", "am", "an", "zu", "zum",
-  "zur", "bei", "aus", "ist", "war", "ich", "wir", "ihr", "sie", "er", "es"
-]);
-
-function normalizeLearningText(value) {
-  return String(value || "")
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-zA-Z0-9 ]+/g, " ")
-    .toLowerCase()
-    .trim();
-}
-
-function tokenizeForCategoryLearning(value) {
-  const text = normalizeLearningText(value);
-  if (!text) return [];
-
-  const raw = text.split(/\s+/g).filter(Boolean);
-  const unique = new Set();
-
-  raw.forEach(token => {
-    if (token.length < 3) return;
-    if (LEARNED_CATEGORY_STOPWORDS.has(token)) return;
-    unique.add(token);
-  });
-
-  return Array.from(unique);
-}
-
-function buildLearnedCategoryModel() {
-  const perToken = new Map();
-  const totalPerCategory = new Map();
-
-  userBookings().forEach(entry => {
-    const category = normalizeCategory(entry.category, state.customCategories);
-    const tokens = tokenizeForCategoryLearning(entry.description);
-    if (!category || tokens.length === 0) return;
-
-    totalPerCategory.set(category, (totalPerCategory.get(category) || 0) + 1);
-
-    tokens.forEach(token => {
-      if (!perToken.has(token)) perToken.set(token, new Map());
-      const catMap = perToken.get(token);
-      catMap.set(category, (catMap.get(category) || 0) + 1);
-    });
-  });
-
-  return { perToken, totalPerCategory };
-}
-
-function suggestCategoryFromHistory(description) {
-  const tokens = tokenizeForCategoryLearning(description);
-  if (tokens.length === 0) return null;
-
-  const { perToken, totalPerCategory } = buildLearnedCategoryModel();
-  const scoreByCategory = new Map();
-
-  tokens.forEach(token => {
-    const catMap = perToken.get(token);
-    if (!catMap) return;
-    catMap.forEach((score, category) => {
-      scoreByCategory.set(category, (scoreByCategory.get(category) || 0) + score);
-    });
-  });
-
-  if (scoreByCategory.size === 0) return null;
-
-  const ranked = Array.from(scoreByCategory.entries()).sort((a, b) => {
-    const byScore = b[1] - a[1];
-    if (byScore !== 0) return byScore;
-    const byTotal = (totalPerCategory.get(b[0]) || 0) - (totalPerCategory.get(a[0]) || 0);
-    if (byTotal !== 0) return byTotal;
-    return a[0].localeCompare(b[0], "de");
-  });
-
-  return ranked[0]?.[0] || null;
-}
-
-function suggestCategory(description) {
-  const learned = suggestCategoryFromHistory(description);
-  if (learned) return normalizeCategory(learned, state.customCategories);
-
-  const text = normalizeLearningText(description);
-  const hit = KEYWORD_MAP.find(([k]) => text.includes(k));
-  return hit ? normalizeCategory(hit[1], state.customCategories) : null;
-}
+const suggestCategory = createCategorySuggester({
+  userBookings,
+  normalizeCategory,
+  customCategories: () => state.customCategories,
+  keywordMap: KEYWORD_MAP
+});
 
 async function validateBookingForm() {
   clearBookingFormErrors();
@@ -3331,839 +2700,47 @@ function collectExportBookings(year, month = null, onlyTax = false) {
     });
 }
 
-function buildSummaryExportModel(year) {
-  const rows = reportRows(year);
-  const totalIncome = rows.reduce((sum, row) => sum + row.income, 0);
-  const totalExpense = rows.reduce((sum, row) => sum + row.expense, 0);
-  const totalNet = totalIncome - totalExpense;
-
-  return {
-    kind: "summary",
-    year,
-    createdAt: new Date().toLocaleString("de-DE"),
-    currency: desktopSettings().currency || "EUR",
-    rows,
-    totals: { income: totalIncome, expense: totalExpense, net: totalNet }
-  };
-}
-
-function buildBookingsExportModel(year, month = null, options = {}) {
-  const onlyTax = Boolean(options.onlyTax);
-  const rows = collectExportBookings(year, month, onlyTax).map(entry => ({
-    date: formatCanonicalDate(entry.month),
-    description: entry.description,
-    category: normalizeCategory(entry.category, state.customCategories),
-    txType: entry.txType,
-    amount: Number(entry.amount || 0),
-    account: entry.account || "",
-    note: entry.note || "",
-    taxDeclaration: Boolean(entry.taxDeclaration)
-  }));
-
-  const income = rows.filter(row => row.txType === "Einnahme").reduce((sum, row) => sum + row.amount, 0);
-  const expense = rows.filter(row => row.txType === "Ausgabe").reduce((sum, row) => sum + row.amount, 0);
-
-  return {
-    kind: "bookings",
-    exportVariant: onlyTax ? "tax-year-bookings" : "bookings",
-    year,
-    month,
-    createdAt: new Date().toLocaleString("de-DE"),
-    currency: desktopSettings().currency || "EUR",
-    rows,
-    totals: {
-      count: rows.length,
-      income,
-      expense,
-      net: income - expense
-    }
-  };
-}
-
-function buildComparisonExportModel(year) {
-  const prevYear = year - 1;
-  const currentRows = reportRows(year);
-  const prevRows = reportRows(prevYear);
-
-  const currentIncome = currentRows.reduce((sum, row) => sum + row.income, 0);
-  const currentExpense = currentRows.reduce((sum, row) => sum + row.expense, 0);
-  const currentNet = currentIncome - currentExpense;
-
-  const prevIncome = prevRows.reduce((sum, row) => sum + row.income, 0);
-  const prevExpense = prevRows.reduce((sum, row) => sum + row.expense, 0);
-  const prevNet = prevIncome - prevExpense;
-
-  let currentCount = 0;
-  let prevCount = 0;
-  userBookings().forEach(entry => {
-    const y = getDateParts(entry.month)?.yyyy;
-    if (y === year) currentCount += 1;
-    else if (y === prevYear) prevCount += 1;
-  });
-
-  const toRow = (label, prev, current, isCurrency = true) => {
-    const delta = current - prev;
-    const pct = prev === 0 ? null : (delta / prev) * 100;
-    return { label, prev, current, delta, pct, isCurrency };
-  };
-
-  return {
-    kind: "comparison",
-    year,
-    prevYear,
-    createdAt: new Date().toLocaleString("de-DE"),
-    currency: desktopSettings().currency || "EUR",
-    rows: [
-      toRow("Einnahmen", prevIncome, currentIncome, true),
-      toRow("Ausgaben", prevExpense, currentExpense, true),
-      toRow("Saldo", prevNet, currentNet, true),
-      toRow("Buchungen", prevCount, currentCount, false)
-    ]
-  };
-}
-
-function buildReportExportModel(year, scope, month) {
-  if (scope === "year-bookings") {
-    return buildBookingsExportModel(year, null);
-  }
-  if (scope === "month-bookings") {
-    return buildBookingsExportModel(year, month);
-  }
-  if (scope === "tax-year-bookings") {
-    return buildBookingsExportModel(year, null, { onlyTax: true });
-  }
-  if (scope === "year-comparison") {
-    return buildComparisonExportModel(year);
-  }
-  return buildSummaryExportModel(year);
-}
-function reportExportMoney(value) {
-  return Number(value || 0).toFixed(2).replace(".", ",");
-}
-
-function reportExportPercent(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "-";
-  const num = Number(value);
-  const sign = num > 0 ? "+" : "";
-  return sign + num.toFixed(1).replace(".", ",") + "%";
-}
-
-function csvCell(value) {
-  const raw = String(value ?? "");
-  return '"' + raw.replace(/"/g, '""') + '"';
-}
-
-function csvLine(fields) {
-  return fields.map(csvCell).join(";");
-}
-
-function buildCsvSummaryContent(model) {
-  const lines = [
-    csvLine(["Export", "Finanz Tracker Jahresauswertung"]),
-    csvLine(["Jahr", String(model.year)]),
-    csvLine(["Erstellt am", model.createdAt]),
-    csvLine(["Währung", model.currency]),
-    "",
-    csvLine(["Monat", "Einnahmen", "Ausgaben", "Saldo"]),
-    ...model.rows.map(row => csvLine([
-      monthNamesForUi()[row.month - 1],
-      reportExportMoney(row.income),
-      reportExportMoney(row.expense),
-      reportExportMoney(row.net)
-    ])),
-    "",
-    csvLine([
-      "Gesamtsumme",
-      reportExportMoney(model.totals.income),
-      reportExportMoney(model.totals.expense),
-      reportExportMoney(model.totals.net)
-    ])
-  ];
-
-  return "\uFEFF" + lines.join("\n");
-}
-
-function buildCsvBookingsContent(model) {
-  const isTaxScope = model.exportVariant === "tax-year-bookings";
-  const scopeLabel = isTaxScope
-    ? "Steuererklärung-Buchungen " + model.year
-    : (model.month
-      ? reportExportMonthLabel(model.month) + " " + model.year
-      : String(model.year));
-  const exportTitle = isTaxScope ? "Finanz Tracker Steuererklärung-Buchungsliste" : "Finanz Tracker Buchungsliste";
-
-  const lines = [
-    csvLine(["Export", exportTitle]),
-    csvLine(["Zeitraum", scopeLabel]),
-    csvLine(["Erstellt am", model.createdAt]),
-    csvLine(["Währung", model.currency]),
-    "",
-    csvLine(["Datum", "Beschreibung", "Kategorie", "Typ", "Betrag", "Konto", "Steuererklärung", "Notiz"]),
-    ...model.rows.map(row => csvLine([
-      row.date,
-      row.description,
-      row.category,
-      row.txType,
-      reportExportMoney(row.amount),
-      row.account,
-      row.taxDeclaration ? "Ja" : "Nein",
-      row.note
-    ])),
-    "",
-    csvLine(["Anzahl Buchungen", String(model.totals.count)]),
-    csvLine(["Summe Einnahmen", reportExportMoney(model.totals.income)]),
-    csvLine(["Summe Ausgaben", reportExportMoney(model.totals.expense)]),
-    csvLine(["Saldo", reportExportMoney(model.totals.net)])
-  ];
-
-  return "\uFEFF" + lines.join("\n");
-}
-
-function buildCsvComparisonContent(model) {
-  const lines = [
-    csvLine(["Export", "Finanz Tracker Jahresvergleich"]),
-    csvLine(["Jahr", String(model.year)]),
-    csvLine(["Vorjahr", String(model.prevYear)]),
-    csvLine(["Erstellt am", model.createdAt]),
-    csvLine(["Währung", model.currency]),
-    "",
-    csvLine(["Kennzahl", String(model.prevYear), String(model.year), "Veränderung", "Veränderung %"]),
-    ...model.rows.map(row => {
-      const prevValue = row.isCurrency ? reportExportMoney(row.prev) : String(row.prev);
-      const currentValue = row.isCurrency ? reportExportMoney(row.current) : String(row.current);
-      const deltaValue = row.isCurrency ? reportExportMoney(row.delta) : String(row.delta);
-      return csvLine([
-        row.label,
-        prevValue,
-        currentValue,
-        deltaValue,
-        reportExportPercent(row.pct)
-      ]);
-    })
-  ];
-
-  return "\uFEFF" + lines.join("\n");
-}
-
-function buildCsvContent(model) {
-  if (model.kind === "bookings") return buildCsvBookingsContent(model);
-  if (model.kind === "comparison") return buildCsvComparisonContent(model);
-  return buildCsvSummaryContent(model);
-}
-
-function buildXlsxSummaryBytes(model) {
-  const xlsx = window.XLSX;
-  if (!xlsx) throw new Error("XLSX-Bibliothek wurde nicht geladen.");
-
-  const aoa = [
-    ["Export", "Finanz Tracker Jahresauswertung"],
-    ["Jahr", String(model.year)],
-    ["Erstellt am", model.createdAt],
-    ["Währung", model.currency],
-    [],
-    ["Monat", "Einnahmen", "Ausgaben", "Saldo"],
-    ...model.rows.map(row => [
-      monthNamesForUi()[row.month - 1],
-      Number(row.income || 0),
-      Number(row.expense || 0),
-      Number(row.net || 0)
-    ]),
-    [],
-    [
-      "Gesamtsumme",
-      Number(model.totals.income || 0),
-      Number(model.totals.expense || 0),
-      Number(model.totals.net || 0)
-    ]
-  ];
-
-  const ws = xlsx.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [
-    { wch: 20 },
-    { wch: 16 },
-    { wch: 16 },
-    { wch: 16 }
-  ];
-
-  const wb = xlsx.utils.book_new();
-  xlsx.utils.book_append_sheet(wb, ws, "Auswertung " + model.year);
-
-  const arr = xlsx.write(wb, { type: "array", bookType: "xlsx" });
-  return new Uint8Array(arr);
-}
-
-function buildXlsxBookingsBytes(model) {
-  const xlsx = window.XLSX;
-  if (!xlsx) throw new Error("XLSX-Bibliothek wurde nicht geladen.");
-
-  const isTaxScope = model.exportVariant === "tax-year-bookings";
-  const scopeLabel = isTaxScope
-    ? "Steuererklärung-Buchungen " + model.year
-    : (model.month
-      ? reportExportMonthLabel(model.month) + " " + model.year
-      : String(model.year));
-  const exportTitle = isTaxScope ? "Finanz Tracker Steuererklärung-Buchungsliste" : "Finanz Tracker Buchungsliste";
-
-  const aoa = [
-    ["Export", exportTitle],
-    ["Zeitraum", scopeLabel],
-    ["Erstellt am", model.createdAt],
-    ["Währung", model.currency],
-    [],
-    ["Datum", "Beschreibung", "Kategorie", "Typ", "Betrag", "Konto", "Steuererklärung", "Notiz"],
-    ...model.rows.map(row => [
-      row.date,
-      row.description,
-      row.category,
-      row.txType,
-      Number(row.amount || 0),
-      row.account,
-      row.taxDeclaration ? "Ja" : "Nein",
-      row.note
-    ]),
-    [],
-    ["Anzahl Buchungen", Number(model.totals.count || 0)],
-    ["Summe Einnahmen", Number(model.totals.income || 0)],
-    ["Summe Ausgaben", Number(model.totals.expense || 0)],
-    ["Saldo", Number(model.totals.net || 0)]
-  ];
-
-  const ws = xlsx.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [
-    { wch: 12 },
-    { wch: 30 },
-    { wch: 22 },
-    { wch: 12 },
-    { wch: 14 },
-    { wch: 18 },
-    { wch: 16 },
-    { wch: 36 }
-  ];
-
-  const wb = xlsx.utils.book_new();
-  const name = isTaxScope
-    ? "Steuer " + model.year
-    : (model.month
-      ? "Buchungen " + String(model.month).padStart(2, "0") + "." + model.year
-      : "Buchungen " + model.year);
-  xlsx.utils.book_append_sheet(wb, ws, name.slice(0, 31));
-
-  const arr = xlsx.write(wb, { type: "array", bookType: "xlsx" });
-  return new Uint8Array(arr);
-}
-
-function buildXlsxComparisonBytes(model) {
-  const xlsx = window.XLSX;
-  if (!xlsx) throw new Error("XLSX-Bibliothek wurde nicht geladen.");
-
-  const aoa = [
-    ["Export", "Finanz Tracker Jahresvergleich"],
-    ["Jahr", String(model.year)],
-    ["Vorjahr", String(model.prevYear)],
-    ["Erstellt am", model.createdAt],
-    ["Währung", model.currency],
-    [],
-    ["Kennzahl", String(model.prevYear), String(model.year), "Veränderung", "Veränderung %"],
-    ...model.rows.map(row => [
-      row.label,
-      row.isCurrency ? Number(row.prev || 0) : Number(row.prev || 0),
-      row.isCurrency ? Number(row.current || 0) : Number(row.current || 0),
-      row.isCurrency ? Number(row.delta || 0) : Number(row.delta || 0),
-      reportExportPercent(row.pct)
-    ])
-  ];
-
-  const ws = xlsx.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [
-    { wch: 20 },
-    { wch: 16 },
-    { wch: 16 },
-    { wch: 16 },
-    { wch: 14 }
-  ];
-
-  const wb = xlsx.utils.book_new();
-  xlsx.utils.book_append_sheet(wb, ws, "Vergleich " + model.year);
-
-  const arr = xlsx.write(wb, { type: "array", bookType: "xlsx" });
-  return new Uint8Array(arr);
-}
-
-function buildXlsxBytes(model) {
-  if (model.kind === "bookings") return buildXlsxBookingsBytes(model);
-  if (model.kind === "comparison") return buildXlsxComparisonBytes(model);
-  return buildXlsxSummaryBytes(model);
-}
-
-function buildPdfSummaryBytes(model) {
-  const jsPdfNs = window.jspdf;
-  if (!jsPdfNs?.jsPDF) throw new Error("PDF-Bibliothek wurde nicht geladen.");
-
-  const doc = new jsPdfNs.jsPDF({ unit: "pt", format: "a4" });
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("Finanz Tracker Jahresauswertung", 40, 44);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text("Jahr: " + model.year, 40, 66);
-  doc.text("Erstellt am: " + model.createdAt, 40, 82);
-  doc.text("Währung: " + model.currency, 40, 98);
-
-  const body = model.rows.map(row => [
-    monthNamesForUi()[row.month - 1],
-    reportExportMoney(row.income),
-    reportExportMoney(row.expense),
-    reportExportMoney(row.net)
-  ]);
-
-  if (typeof doc.autoTable === "function") {
-    doc.autoTable({
-      startY: 116,
-      head: [["Monat", "Einnahmen", "Ausgaben", "Saldo"]],
-      body,
-      styles: { font: "helvetica", fontSize: 9 },
-      headStyles: { fillColor: [15, 118, 110] }
-    });
-
-    const endY = doc.lastAutoTable?.finalY || 116;
-    doc.setFont("helvetica", "bold");
-    doc.text(
-      "Gesamtsumme  Einnahmen: " + reportExportMoney(model.totals.income) +
-      "   Ausgaben: " + reportExportMoney(model.totals.expense) +
-      "   Saldo: " + reportExportMoney(model.totals.net),
-      40,
-      endY + 24
-    );
-  }
-
-  const arr = doc.output("arraybuffer");
-  return new Uint8Array(arr);
-}
-
-function buildPdfBookingsBytes(model) {
-  const jsPdfNs = window.jspdf;
-  if (!jsPdfNs?.jsPDF) throw new Error("PDF-Bibliothek wurde nicht geladen.");
-
-  const doc = new jsPdfNs.jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
-
-  const isTaxScope = model.exportVariant === "tax-year-bookings";
-  const scopeLabel = isTaxScope
-    ? "Steuererklärung-Buchungen " + model.year
-    : (model.month
-      ? reportExportMonthLabel(model.month) + " " + model.year
-      : String(model.year));
-  const exportTitle = isTaxScope ? "Finanz Tracker Steuererklärung-Buchungsliste" : "Finanz Tracker Buchungsliste";
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text(exportTitle, 40, 44);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text("Zeitraum: " + scopeLabel, 40, 66);
-  doc.text("Erstellt am: " + model.createdAt, 40, 82);
-  doc.text("Währung: " + model.currency, 40, 98);
-
-  const body = model.rows.map(row => [
-    row.date,
-    row.description,
-    row.category,
-    row.txType,
-    reportExportMoney(row.amount),
-    row.account,
-    row.taxDeclaration ? "Ja" : "Nein",
-    row.note
-  ]);
-
-  if (typeof doc.autoTable === "function") {
-    doc.autoTable({
-      startY: 116,
-      head: [["Datum", "Beschreibung", "Kategorie", "Typ", "Betrag", "Konto", "Steuererklärung", "Notiz"]],
-      body,
-      styles: { font: "helvetica", fontSize: 8, cellPadding: 4 },
-      headStyles: { fillColor: [15, 118, 110] },
-      columnStyles: {
-        0: { cellWidth: 64 },
-        1: { cellWidth: 160 },
-        2: { cellWidth: 112 },
-        3: { cellWidth: 58 },
-        4: { cellWidth: 68 },
-        5: { cellWidth: 90 },
-        6: { cellWidth: 78 },
-        7: { cellWidth: 118 }
-      }
-    });
-
-    const endY = doc.lastAutoTable?.finalY || 116;
-    doc.setFont("helvetica", "bold");
-    doc.text(
-      "Buchungen: " + model.totals.count +
-      "   Einnahmen: " + reportExportMoney(model.totals.income) +
-      "   Ausgaben: " + reportExportMoney(model.totals.expense) +
-      "   Saldo: " + reportExportMoney(model.totals.net),
-      40,
-      endY + 24
-    );
-  }
-
-  const arr = doc.output("arraybuffer");
-  return new Uint8Array(arr);
-}
-
-function buildPdfComparisonBytes(model) {
-  const jsPdfNs = window.jspdf;
-  if (!jsPdfNs?.jsPDF) throw new Error("PDF-Bibliothek wurde nicht geladen.");
-
-  const doc = new jsPdfNs.jsPDF({ unit: "pt", format: "a4" });
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("Finanz Tracker Jahresvergleich", 40, 44);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text("Jahr: " + model.year, 40, 66);
-  doc.text("Vorjahr: " + model.prevYear, 40, 82);
-  doc.text("Erstellt am: " + model.createdAt, 40, 98);
-  doc.text("Währung: " + model.currency, 40, 114);
-
-  const body = model.rows.map(row => {
-    const prevValue = row.isCurrency ? reportExportMoney(row.prev) : String(row.prev);
-    const currentValue = row.isCurrency ? reportExportMoney(row.current) : String(row.current);
-    const deltaValue = row.isCurrency ? reportExportMoney(row.delta) : String(row.delta);
-    return [row.label, prevValue, currentValue, deltaValue, reportExportPercent(row.pct)];
-  });
-
-  if (typeof doc.autoTable === "function") {
-    doc.autoTable({
-      startY: 132,
-      head: [["Kennzahl", String(model.prevYear), String(model.year), "Veränderung", "Veränderung %"]],
-      body,
-      styles: { font: "helvetica", fontSize: 9 },
-      headStyles: { fillColor: [15, 118, 110] }
-    });
-  }
-
-  const arr = doc.output("arraybuffer");
-  return new Uint8Array(arr);
-}
-
-function buildPdfBytes(model) {
-  if (model.kind === "bookings") return buildPdfBookingsBytes(model);
-  if (model.kind === "comparison") return buildPdfComparisonBytes(model);
-  return buildPdfSummaryBytes(model);
-}
-
-function reportExportFilename(model, format) {
-  const ext = String(format || "csv").toLowerCase();
-  if (model.kind === "bookings") {
-    if (model.exportVariant === "tax-year-bookings") {
-      return "steuererklaerung_buchungen_" + model.year + "." + ext;
-    }
-    if (model.month) {
-      return "buchungen_" + String(model.month).padStart(2, "0") + "_" + model.year + "." + ext;
-    }
-    return "buchungen_" + model.year + "." + ext;
-  }
-  if (model.kind === "comparison") {
-    return "jahresvergleich_" + model.year + "_vs_" + model.prevYear + "." + ext;
-  }
-  return "auswertung_" + model.year + "." + ext;
-}
-function bytesToBase64(bytes) {
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode.apply(null, Array.from(chunk));
-  }
-  return btoa(binary);
-}
-
-function triggerDownload(filename, content, mimeType = "application/octet-stream") {
-  const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-async function writeBinaryReportViaTauri(filename, bytes) {
-  const base64 = bytesToBase64(bytes);
-  return tryInvokeTauriCommand("write_report_binary", {
-    filename,
-    contentBase64: base64,
-    content_base64: base64
-  });
-}
+const reportBuilders = createReportBuilders({
+  reportRows,
+  userBookings,
+  getDateParts,
+  collectExportBookings,
+  formatCanonicalDate,
+  normalizeCategory,
+  customCategories: () => state.customCategories,
+  currency: () => desktopSettings().currency || "EUR",
+  monthNamesForUi,
+  reportExportMonthLabel,
+  getExcelJS: () => window.ExcelJS,
+  getJsPdf: () => window.jspdf
+});
+const reportIo = createReportIo({
+  tryInvokeTauriCommand,
+  showToast,
+  getLangCode: resolvedLangCode,
+  t
+});
+
+const exportReportImpl = createReportExporter({
+  parseYear,
+  reportYearInputValue: () => el.reportYearInput.value,
+  getReportExportScope,
+  getReportExportMonth,
+  buildReportExportModel: reportBuilders.buildReportExportModel,
+  reportExportFormatValue: () => String(el.reportExportFormat?.value || "pdf").toLowerCase(),
+  reportExportFilename: reportBuilders.reportExportFilename,
+  buildXlsxBytes: reportBuilders.buildXlsxBytes,
+  buildPdfBytes: reportBuilders.buildPdfBytes,
+  buildCsvContent: reportBuilders.buildCsvContent,
+  writeBinaryWithFallback: reportIo.writeBinaryWithFallback,
+  writeTextWithFallback: reportIo.writeTextWithFallback,
+  showToast,
+  isEnglish: () => resolvedLangCode() === "en"
+});
 
 async function exportReport() {
-  const year = parseYear(el.reportYearInput.value);
-  if (!year) {
-    showToast(
-      resolvedLangCode() === "en" ? "Please enter a valid year first." : "Bitte zuerst ein gültiges Jahr eintragen.",
-      "error"
-    );
-    return;
-  }
-
-  const scope = getReportExportScope();
-  const month = scope === "month-bookings" ? getReportExportMonth() : null;
-  if (scope === "month-bookings" && month === null) {
-    showToast(
-      resolvedLangCode() === "en" ? "Please choose a valid month for export." : "Bitte einen gültigen Monat für den Export wählen.",
-      "error"
-    );
-    return;
-  }
-
-  const model = buildReportExportModel(year, scope, month);
-  const format = String(el.reportExportFormat?.value || "pdf").toLowerCase();
-
-  if (format === "xlsx") {
-    const filename = reportExportFilename(model, "xlsx");
-    let bytes;
-    try {
-      bytes = buildXlsxBytes(model);
-    } catch (err) {
-      showToast(resolvedLangCode() === "en" ? "Could not generate XLSX." : "XLSX konnte nicht erstellt werden.", "error");
-      return;
-    }
-
-    try {
-      const writtenPath = await writeBinaryReportViaTauri(filename, bytes);
-      if (writtenPath) {
-        showToast((resolvedLangCode() === "en" ? "XLSX exported: " : "XLSX exportiert: ") + writtenPath, "success");
-        return;
-      }
-    } catch (err) {
-      const message = String(err || "");
-      if (message.includes("EXPORT_CANCELED")) {
-        showToast(t("exportCanceled"), "info");
-        return;
-      }
-      triggerDownload(filename, bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      showToast(
-        resolvedLangCode() === "en" ? "XLSX browser download started." : "XLSX als Browser-Download gestartet.",
-        "success"
-      );
-      return;
-    }
-
-    triggerDownload(filename, bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    showToast(resolvedLangCode() === "en" ? "XLSX browser download started." : "XLSX als Browser-Download gestartet.", "success");
-    return;
-  }
-
-  if (format === "pdf") {
-    const filename = reportExportFilename(model, "pdf");
-    let bytes;
-    try {
-      bytes = buildPdfBytes(model);
-    } catch (err) {
-      showToast(resolvedLangCode() === "en" ? "Could not generate PDF." : "PDF konnte nicht erstellt werden.", "error");
-      return;
-    }
-
-    try {
-      const writtenPath = await writeBinaryReportViaTauri(filename, bytes);
-      if (writtenPath) {
-        showToast((resolvedLangCode() === "en" ? "PDF exported: " : "PDF exportiert: ") + writtenPath, "success");
-        return;
-      }
-    } catch (err) {
-      const message = String(err || "");
-      if (message.includes("EXPORT_CANCELED")) {
-        showToast(t("exportCanceled"), "info");
-        return;
-      }
-      triggerDownload(filename, bytes, "application/pdf");
-      showToast(resolvedLangCode() === "en" ? "PDF browser download started." : "PDF als Browser-Download gestartet.", "success");
-      return;
-    }
-
-    triggerDownload(filename, bytes, "application/pdf");
-    showToast(resolvedLangCode() === "en" ? "PDF browser download started." : "PDF als Browser-Download gestartet.", "success");
-    return;
-  }
-
-  const filename = reportExportFilename(model, "csv");
-  const content = buildCsvContent(model);
-
-  try {
-    const writtenPath = await tryInvokeTauriCommand("write_report_csv", { filename, content });
-    if (writtenPath) {
-      showToast((resolvedLangCode() === "en" ? "CSV exported: " : "CSV exportiert: ") + writtenPath, "success");
-      return;
-    }
-  } catch (err) {
-    const message = String(err || "");
-    if (message.includes("EXPORT_CANCELED")) {
-      showToast(t("exportCanceled"), "info");
-      return;
-    }
-    triggerDownload(filename, content, "text/csv;charset=utf-8");
-    showToast(resolvedLangCode() === "en" ? "CSV browser download started." : "CSV als Browser-Download gestartet.", "success");
-    return;
-  }
-
-  triggerDownload(filename, content, "text/csv;charset=utf-8");
-  showToast(resolvedLangCode() === "en" ? "CSV browser download started." : "CSV als Browser-Download gestartet.", "success");
+  await exportReportImpl();
 }
-function showDialog({
-  title = resolvedLangCode() === "en" ? "Info" : "Hinweis",
-  message = "",
-  mode = "alert",
-  defaultValue = "",
-  okText = "OK",
-  cancelText = resolvedLangCode() === "en" ? "Cancel" : "Abbrechen",
-  danger = false
-}) {
-  return new Promise(resolve => {
-    const { dialogOverlay, dialogTitle, dialogMessage, dialogInput, dialogOkBtn, dialogCancelBtn } = el;
-
-    dialogTitle.textContent = title;
-    dialogMessage.textContent = message;
-    dialogOkBtn.textContent = okText;
-    dialogCancelBtn.textContent = cancelText;
-
-    dialogOkBtn.classList.remove("danger", "primary");
-    dialogOkBtn.classList.add(danger ? "danger" : "primary");
-
-    const isPrompt = mode === "prompt";
-    const hasCancel = mode === "confirm" || mode === "prompt";
-
-    dialogInput.classList.toggle("hidden", !isPrompt);
-    dialogCancelBtn.classList.toggle("hidden", !hasCancel);
-
-    dialogInput.value = defaultValue;
-
-    dialogOverlay.classList.remove("hidden");
-    dialogOverlay.setAttribute("aria-hidden", "false");
-
-    if (isPrompt) {
-      setTimeout(() => {
-        dialogInput.focus();
-        dialogInput.select();
-      }, 0);
-    } else {
-      setTimeout(() => dialogOkBtn.focus(), 0);
-    }
-
-    const finish = result => {
-      cleanup();
-      dialogOverlay.classList.add("hidden");
-      dialogOverlay.setAttribute("aria-hidden", "true");
-      resolve(result);
-    };
-
-    const onOk = () => {
-      if (mode === "prompt") {
-        finish(dialogInput.value);
-      } else if (mode === "confirm") {
-        finish(true);
-      } else {
-        finish(true);
-      }
-    };
-
-    const onCancel = () => {
-      if (mode === "confirm") {
-        finish(false);
-      } else if (mode === "prompt") {
-        finish(null);
-      } else {
-        finish(true);
-      }
-    };
-
-    const onKeyDown = evt => {
-      if (evt.key === "Escape" && hasCancel) {
-        evt.preventDefault();
-        onCancel();
-      }
-      if (evt.key === "Enter") {
-        if (!isPrompt || document.activeElement === dialogInput) {
-          evt.preventDefault();
-          onOk();
-        }
-      }
-    };
-
-    const onOverlayClick = evt => {
-      if (evt.target === dialogOverlay && hasCancel) {
-        onCancel();
-      }
-    };
-
-    const cleanup = () => {
-      dialogOkBtn.removeEventListener("click", onOk);
-      dialogCancelBtn.removeEventListener("click", onCancel);
-      dialogOverlay.removeEventListener("click", onOverlayClick);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-
-    dialogOkBtn.addEventListener("click", onOk);
-    dialogCancelBtn.addEventListener("click", onCancel);
-    dialogOverlay.addEventListener("click", onOverlayClick);
-    document.addEventListener("keydown", onKeyDown);
-  });
-}
-
-function showToast(message, type = "success", durationMs = 2600) {
-  const host = el.toastContainer;
-  if (!host) return;
-
-  const toast = document.createElement("div");
-  toast.className = "toast " + type;
-  toast.textContent = message;
-  host.appendChild(toast);
-
-  requestAnimationFrame(() => {
-    toast.classList.add("show");
-  });
-
-  const remove = () => {
-    toast.classList.remove("show");
-    setTimeout(() => toast.remove(), 180);
-  };
-
-  setTimeout(remove, durationMs);
-}
-
-async function showInfo(message, title = (resolvedLangCode() === "en" ? "Info" : "Hinweis")) {
-  await showDialog({ title, message, mode: "alert", okText: "OK" });
-}
-
-async function askConfirm(message, title = (resolvedLangCode() === "en" ? "Confirmation" : "Bestätigung"), danger = false) {
-  return showDialog({
-    title,
-    message,
-    mode: "confirm",
-    okText: danger ? t("delete") : (resolvedLangCode() === "en" ? "Confirm" : "Bestätigen"),
-    cancelText: resolvedLangCode() === "en" ? "Cancel" : "Abbrechen",
-    danger
-  });
-}
-
-async function askText(message, title = (resolvedLangCode() === "en" ? "Input" : "Eingabe"), defaultValue = "") {
-  return showDialog({
-    title,
-    message,
-    mode: "prompt",
-    defaultValue,
-    okText: t("save"),
-    cancelText: resolvedLangCode() === "en" ? "Cancel" : "Abbrechen"
-  });
-}
-
-
 
 function formatSyncDate(ts) {
   const n = Number(ts);
