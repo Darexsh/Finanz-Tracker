@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Finanz Tracker",
-  "version": "0.1.0",
-  "identifier": "com.localai.finanztracker",
+  "version": "1.0.0",
+  "identifier": "com.darexsh.finanztracker",
   "build": {
     "frontendDist": "../web-dist",
     "beforeBuildCommand": "npm run prepare:dist",
