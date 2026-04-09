@@ -82,6 +82,13 @@ The app is built with Tauri for desktop and includes an Android app (Kotlin + Co
 📥 Installation
 ---------------
 
+### ⚡ Quick Install (Recommended)
+
+Download the prebuilt app from the release page and run it directly:
+
+* Desktop: use the `.exe` installer
+* Android: install the `.apk` file
+
 ### Desktop (Tauri)
 
 1. Install **Node.js 20+** and **npm**.
