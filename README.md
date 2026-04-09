@@ -5,12 +5,12 @@
 💸 Finanz Tracker
 ============================
 
-**Modern desktop finance tracking app with Tauri (Web UI + native shell)**  
+**Cross-platform finance tracking app for Desktop (Tauri) and Android**  
 ⚡📊🧾💾🔄
 
-![Projekt-Status](https://img.shields.io/badge/Status-Aktiv-brightgreen) ![License](https://img.shields.io/badge/License-NonCommercial-blue) ![Version](https://img.shields.io/badge/Version-1.0-orange)
+![Status](https://img.shields.io/badge/Status-Final-brightgreen) ![License](https://img.shields.io/badge/License-NonCommercial-blue) ![Version](https://img.shields.io/badge/Version-1.0-orange)
 
-![Platform](https://img.shields.io/badge/Platform-Desktop_(Tauri)-blue) ![Storage](https://img.shields.io/badge/Storage-SQLite-orange)
+![Platform](https://img.shields.io/badge/Platform-Desktop_(Tauri)%20%2B%20Android-blue) ![Storage](https://img.shields.io/badge/Storage-SQLite%20%2B%20JSON-orange)
 
 [![Telegram Bot](https://img.shields.io/badge/Telegram-Bot-2AABEE?logo=telegram&logoColor=white)](https://t.me/darexsh_bot) [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-yellow?logo=buy-me-a-coffee)](https://buymeacoffee.com/darexsh)  
 <sub>Check out my bot in Telegram for an easy project overview.<br>If you want to support more projects, you can leave a small donation for a coffee.</sub>
@@ -44,7 +44,7 @@ This project is an independent personal/open-source finance tracker.
 
 **Finanz Tracker** is an app to manage personal finances with multiple separated user profiles, fast booking workflows, dashboard insights, yearly reports, and optional cross-device sync via a local sync folder.
 
-The app is built with Tauri for desktop and includes an Android app (Kotlin + Compose) with SAF-based sync folder selection, sync-file auto-load/auto-save, background sync refresh while app is open, extended bookings workflow (create/edit/delete/filter/tax-flag/date input/custom-category management), and persistent settings (language, date format, currency, sorting/suggestions, appearance, navigation animation style, system app lock, and backup/import). Desktop also includes a dedicated **Info** tab with app details and quick action links.
+The app is built with Tauri for desktop and includes an Android app (Kotlin + Compose) with SAF-based sync folder selection, sync-file auto-load/auto-save, background sync refresh while app is open, extended bookings workflow (create/edit/delete/filter/tax-flag/date input/custom-category management), and persistent settings (language, date format, currency, sorting/suggestions, appearance, navigation animation style, system app lock, and backup/import).
 
 * * *
 
@@ -196,7 +196,7 @@ Typical setup:
 Finanz-Tracker/
 ├─ apps/
 │  ├─ desktop/             # Tauri desktop app (active)
-│  └─ mobile/              # Android app (Kotlin/Compose, final)
+│  └─ mobile/              # Android app (active)
 ├─ shared/
 │  ├─ domain/              # shared domain logic (planned)
 │  └─ utils/               # shared utilities (planned)
@@ -234,17 +234,6 @@ Finanz-Tracker/
 * Current data model supports separated users, bookings, and custom categories.
 
 * Runtime performance optimizations: cached user-bookings and report aggregates, one-pass dashboard aggregation, lazy-rendering for large booking lists (incremental loading), and queued write-batching for persistence.
-
-* * *
-
-🧭 Release Status
-----------------
-
-* Desktop and Android apps are final for the current release.
-
-* All features listed in this README are implemented and in place.
-
-* Sync conflict handling is intentionally simple for non-parallel usage.
 
 * * *
 
