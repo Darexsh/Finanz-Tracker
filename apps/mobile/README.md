@@ -4,11 +4,12 @@ Android app workspace for Finanz Tracker.
 
 ## Current Status
 - Android app is final.
+- All features listed below are implemented and in place.
 - Stack: Kotlin + Jetpack Compose + Groovy Gradle (build.gradle).
 - applicationId: com.darexsh.finanztracker
 - minSdk: 26
 
-## Included Foundation
+## Implemented Features
 - UI text is fully resource-based with automatic locale selection (English and German resources).
 - Basic app shell with bottom navigation (Overview/Bookings/Reports/Sync/Settings).
 - Local JSON state persistence (state.json in app-internal storage).

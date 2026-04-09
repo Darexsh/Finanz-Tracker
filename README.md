@@ -232,12 +232,12 @@ Finanz-Tracker/
 
 * * *
 
-🧭 Scope
---------
+🧭 Release Status
+----------------
 
-* Desktop-first product focus until stability goals are finished.
+* Desktop and Android apps are final for the current release.
 
-* Android app is final.
+* All features listed in this README are implemented and in place.
 
 * Sync conflict handling is intentionally simple for non-parallel usage.
 
