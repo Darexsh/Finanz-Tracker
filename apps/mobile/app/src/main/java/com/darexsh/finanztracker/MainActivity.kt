@@ -1,17 +1,18 @@
 package com.darexsh.finanztracker
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.darexsh.finanztracker.domain.DefaultTrackerService
 import com.darexsh.finanztracker.data.StateRepository
 import com.darexsh.finanztracker.ui.AppViewModel
 import com.darexsh.finanztracker.ui.FinanceTrackerApp
 import com.darexsh.finanztracker.ui.theme.FinanzTrackerTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     private val viewModel by viewModels<AppViewModel> {
         AppViewModel.Factory(
@@ -22,8 +23,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            FinanzTrackerTheme {
-                val state = viewModel.state.collectAsState().value
+            val state by viewModel.state.collectAsState()
+            FinanzTrackerTheme(fontSizeMode = state.appSettings.fontSizeMode) {
                 FinanceTrackerApp(
                     state = state,
                     onSetActiveUser = viewModel::setActiveUser,
@@ -39,7 +40,10 @@ class MainActivity : ComponentActivity() {
                     onRenameCustomCategory = viewModel::renameCustomCategory,
                     onDeleteCustomCategory = viewModel::deleteCustomCategory,
                     onSyncFolderSelected = viewModel::setSyncFolderUri,
-                    onSyncFolderCleared = viewModel::clearSyncFolderUri
+                    onSyncFolderCleared = viewModel::clearSyncFolderUri,
+                    onUpdateAppSettings = viewModel::updateAppSettings,
+                    onExportStateJson = viewModel::exportStateJson,
+                    onImportStateJson = viewModel::importStateJson
                 )
             }
         }

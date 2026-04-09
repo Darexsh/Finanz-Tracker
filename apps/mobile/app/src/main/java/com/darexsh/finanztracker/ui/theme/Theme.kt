@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.darexsh.finanztracker.model.FontSizeMode
 
 private val LightColors = lightColorScheme(
     primary = Color(0xFF0F766E),
@@ -35,23 +36,31 @@ private val DarkColors = darkColorScheme(
     onBackground = Color(0xFFE5E7EB)
 )
 
-private val AppTypography = Typography(
-    headlineSmall = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.SemiBold),
-    titleMedium = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
-    labelLarge = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
-    bodyMedium = TextStyle(fontSize = 14.sp),
-    bodySmall = TextStyle(fontSize = 12.sp)
-)
+private fun appTypography(scale: Float): Typography {
+    return Typography(
+        headlineSmall = TextStyle(fontSize = (24f * scale).sp, fontWeight = FontWeight.SemiBold),
+        titleMedium = TextStyle(fontSize = (18f * scale).sp, fontWeight = FontWeight.SemiBold),
+        labelLarge = TextStyle(fontSize = (14f * scale).sp, fontWeight = FontWeight.Medium),
+        bodyMedium = TextStyle(fontSize = (14f * scale).sp),
+        bodySmall = TextStyle(fontSize = (12f * scale).sp)
+    )
+}
 
 @Composable
 fun FinanzTrackerTheme(
     darkTheme: Boolean = false,
+    fontSizeMode: FontSizeMode = FontSizeMode.NORMAL,
     content: @Composable () -> Unit
 ) {
     val colors = if (darkTheme) DarkColors else LightColors
+    val scale = when (fontSizeMode) {
+        FontSizeMode.COMPACT -> 0.92f
+        FontSizeMode.NORMAL -> 1f
+        FontSizeMode.LARGE -> 1.1f
+    }
     MaterialTheme(
         colorScheme = colors,
-        typography = AppTypography,
+        typography = appTypography(scale),
         content = content
     )
 }

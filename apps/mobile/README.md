@@ -9,8 +9,8 @@ Android app workspace for Finanz Tracker.
 - minSdk: 26
 
 ## Included Foundation
-- UI text is fully resource-based (values/strings.xml + values-de/strings.xml) with automatic locale selection.
-- Basic app shell with bottom navigation (Overview/Bookings/Reports/Sync or Übersicht/Buchungen/Auswertung/Sync, depending on system language).
+- UI text is fully resource-based with automatic locale selection (English and German resources).
+- Basic app shell with bottom navigation (Overview/Bookings/Reports/Sync/Settings).
 - Local JSON state persistence (state.json in app-internal storage).
 - ViewModel-based state handling.
 - Service layer between ViewModel/UI and repository/data access.
@@ -18,10 +18,13 @@ Android app workspace for Finanz Tracker.
 - Shared finance catalog module for categories/accounts/keyword suggestion and category normalization.
 - Multi-user management (select, add, rename, delete with booking cleanup for deleted profile).
 - Booking workflow with create, edit, delete (single and multi-select), type/category/account/text filters, and tax-declaration flag handling.
-- Custom category management from the booking form (`Neue Kategorie` / `Kategorie umbenennen` / `Kategorie löschen`) with desktop-like built-in-category protection, persistence, and sync export.
+- Custom category management from the booking form (new/rename/delete category) with desktop-like built-in-category protection, persistence, and sync export.
 - Dashboard with desktop-like KPI cards (including monthly surplus), top-categories month selector, and desktop-style monthly cashflow chart (axis/grid + bar overlay style, tap on month bar shows income/expense/balance details).
 - Report screen with desktop-like panel/table structure, selectable year, year-over-year comparison, and monthly income/expense/balance breakdown.
-- Report export with desktop-like scope selection and save dialog (CSV/PDF/XLSX for summary, year-comparison, year-bookings, month-bookings).
+- Report export with desktop-like scope selection and save dialog (CSV/PDF/XLSX for summary, year-comparison, year-bookings, month-bookings, tax-declaration-bookings in selected year).
+- Settings screen with persistent app options (language, date format, currency, booking sort/suggestions, font size, navigation animation style, start tab, default export format, system app lock, backup export/import).
+- Settings includes an App-Info button (`i`) with version/details and quick action links (email, social media, Telegram bot, GitHub profile, Buy Me a Coffee).
+- App lock uses Android system authentication (biometric/device credential), blocks content with lock overlay, and requires re-authentication before disabling the lock.
 - Sync tab with SAF folder picker (select/change/clear) and persisted URI permission.
 - Read/write of finanz-tracker-sync-latest.json via selected SAF folder URI.
 - Auto-load from sync file on app start, background auto-refresh while app is open, and auto-save to sync file on data changes.

@@ -3,6 +3,24 @@ package com.darexsh.finanztracker.ui
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
+import androidx.appcompat.app.AppCompatActivity
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
@@ -26,6 +44,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Assessment
 import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -53,6 +72,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -65,15 +85,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.window.Dialog
+import androidx.core.os.LocaleListCompat
+import androidx.core.content.ContextCompat
+import androidx.appcompat.app.AppCompatDelegate
+import java.util.Locale
 import com.darexsh.finanztracker.R
 import com.darexsh.finanztracker.domain.BookingDraft
 import com.darexsh.finanztracker.domain.CategoryMutationStatus
 import com.darexsh.finanztracker.model.TrackerState
+import com.darexsh.finanztracker.model.AppSettings
+import com.darexsh.finanztracker.model.AppStartTab
+import com.darexsh.finanztracker.model.LanguagePreference
+import com.darexsh.finanztracker.model.NavigationAnimationStyle
 import com.darexsh.finanztracker.ui.screens.BookingsScreen
 import com.darexsh.finanztracker.ui.screens.DashboardScreen
 import com.darexsh.finanztracker.ui.screens.ReportsScreen
+import com.darexsh.finanztracker.ui.screens.SettingsScreen
 import com.darexsh.finanztracker.ui.screens.SyncScreen
 import kotlinx.coroutines.delay
 
@@ -95,32 +125,151 @@ fun FinanceTrackerApp(
     onRenameCustomCategory: (currentName: String, newName: String) -> CategoryMutationStatus,
     onDeleteCustomCategory: (name: String) -> CategoryMutationStatus,
     onSyncFolderSelected: (String) -> Unit,
-    onSyncFolderCleared: () -> Unit
+    onSyncFolderCleared: () -> Unit,
+    onUpdateAppSettings: (AppSettings) -> Unit,
+    onExportStateJson: () -> String,
+    onImportStateJson: (String) -> Boolean
 ) {
+    val context = LocalContext.current
+    val activity = context as? AppCompatActivity
     val tabs = listOf(
         TabItem(stringResource(R.string.tab_overview), Icons.Outlined.Dashboard),
         TabItem(stringResource(R.string.tab_bookings), Icons.AutoMirrored.Outlined.List),
         TabItem(stringResource(R.string.tab_reports), Icons.Outlined.Assessment),
-        TabItem(stringResource(R.string.tab_sync), Icons.Outlined.Sync)
+        TabItem(stringResource(R.string.tab_sync), Icons.Outlined.Sync),
+        TabItem(stringResource(R.string.tab_settings), Icons.Outlined.Settings)
     )
-    var selectedIndex by remember { mutableStateOf(0) }
+    var selectedIndex by remember { mutableStateOf(startTabToIndex(state.appSettings.startTab)) }
+    var unlocked by remember { mutableStateOf(!state.appSettings.appLockEnabled) }
+    var authInProgress by remember { mutableStateOf(false) }
+    var authError by remember { mutableStateOf<String?>(null) }
+    var authAttempted by remember { mutableStateOf(false) }
+    val appLockPrompt = stringResource(R.string.settings_app_lock_prompt)
+    val appLockUnavailable = stringResource(R.string.settings_app_lock_unavailable)
+    val appLockAuthTitle = stringResource(R.string.settings_app_lock_auth_title)
+    val appLockAuthSubtitle = stringResource(R.string.settings_app_lock_auth_subtitle)
+
+    val requestSystemAuth = {
+        if (activity == null) {
+            authError = appLockUnavailable
+            authInProgress = false
+        } else {
+            authInProgress = true
+            authAttempted = true
+            val executor = ContextCompat.getMainExecutor(activity)
+            val prompt = BiometricPrompt(
+                activity,
+                executor,
+                object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                        unlocked = true
+                        authError = null
+                        authInProgress = false
+                    }
+
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        authError = errString.toString()
+                        authInProgress = false
+                    }
+                }
+            )
+            val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                .setTitle(appLockAuthTitle)
+                .setSubtitle(appLockAuthSubtitle)
+                .setAllowedAuthenticators(
+                    BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                        BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                )
+                .build()
+            prompt.authenticate(promptInfo)
+        }
+    }
+
+    LaunchedEffect(state.appSettings.appLockEnabled) {
+        unlocked = !state.appSettings.appLockEnabled
+        authInProgress = false
+        authError = null
+        authAttempted = false
+    }
+
+    LaunchedEffect(state.appSettings.appLockEnabled, unlocked, authInProgress, authAttempted, activity) {
+        if (!state.appSettings.appLockEnabled || unlocked || authInProgress || authAttempted) return@LaunchedEffect
+
+        val canUseSystemAuth = canUseSystemAuthentication(context)
+        if (!canUseSystemAuth) {
+            onUpdateAppSettings(state.appSettings.copy(appLockEnabled = false))
+            unlocked = true
+            authError = appLockUnavailable
+            return@LaunchedEffect
+        }
+        requestSystemAuth()
+    }
+
+    LaunchedEffect(state.appSettings.language) {
+        val locales = when (state.appSettings.language) {
+            LanguagePreference.SYSTEM -> LocaleListCompat.getEmptyLocaleList()
+            LanguagePreference.GERMAN -> LocaleListCompat.forLanguageTags("de")
+            LanguagePreference.ENGLISH -> LocaleListCompat.forLanguageTags("en")
+        }
+        val currentLocales = AppCompatDelegate.getApplicationLocales()
+        val sameByLanguage = run {
+            if (locales.isEmpty && currentLocales.isEmpty) {
+                true
+            } else if (locales.isEmpty || currentLocales.isEmpty) {
+                false
+            } else {
+                val targetLanguage = Locale.forLanguageTag(locales[0]?.toLanguageTag().orEmpty()).language
+                val currentLanguage = Locale.forLanguageTag(currentLocales[0]?.toLanguageTag().orEmpty()).language
+                targetLanguage.isNotBlank() && targetLanguage == currentLanguage
+            }
+        }
+        if (!sameByLanguage) {
+            AppCompatDelegate.setApplicationLocales(locales)
+        }
+    }
+    val isLocked = !unlocked && state.appSettings.appLockEnabled
+    val effectiveNavAnimationStyle = if (state.appSettings.reduceAnimations) {
+        NavigationAnimationStyle.NONE
+    } else {
+        state.appSettings.navigationAnimationStyle
+    }
+    val contentRotation = remember { Animatable(0f) }
+    LaunchedEffect(selectedIndex, effectiveNavAnimationStyle) {
+        if (effectiveNavAnimationStyle == NavigationAnimationStyle.ROTATE) {
+            contentRotation.snapTo(-8f)
+            contentRotation.animateTo(0f, animationSpec = tween(260))
+        } else {
+            contentRotation.snapTo(0f)
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
         AnimatedScreenBackground(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            reduceAnimations = state.appSettings.reduceAnimations
         )
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                UserHeaderBar(
-                    state = state,
-                    onSetActiveUser = onSetActiveUser,
-                    onAddUser = onAddUser,
-                    onRenameActiveUser = onRenameActiveUser,
-                    onDeleteActiveUser = onDeleteActiveUser
-                )
+                if (isLocked) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .height(132.dp)
+                            .background(Color.Black)
+                    )
+                } else {
+                    UserHeaderBar(
+                        state = state,
+                        onSetActiveUser = onSetActiveUser,
+                        onAddUser = onAddUser,
+                        onRenameActiveUser = onRenameActiveUser,
+                        onDeleteActiveUser = onDeleteActiveUser
+                    )
+                }
             },
             bottomBar = {
                 NavigationBar(
@@ -138,7 +287,15 @@ fun FinanceTrackerApp(
                                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                             ),
                             icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) }
+                            label = {
+                                Text(
+                                    text = tab.label,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Clip,
+                                    softWrap = false,
+                                    fontSize = 10.sp
+                                )
+                            }
                         )
                     }
                 }
@@ -149,24 +306,78 @@ fun FinanceTrackerApp(
                     .padding(padding)
                     .fillMaxSize()
             ) {
-                when (selectedIndex) {
-                    0 -> DashboardScreen(state = state)
-                    1 -> BookingsScreen(
-                        state = state,
-                        onAddBooking = onAddBooking,
-                        onUpdateBooking = onUpdateBooking,
-                        onDeleteBooking = onDeleteBooking,
-                        onDeleteBookings = onDeleteBookings,
-                        onSetBookingTaxDeclaration = onSetBookingTaxDeclaration,
-                        onAddCustomCategory = onAddCustomCategory,
-                        onRenameCustomCategory = onRenameCustomCategory,
-                        onDeleteCustomCategory = onDeleteCustomCategory
-                    )
-                    2 -> ReportsScreen(state = state)
-                    else -> SyncScreen(
-                        syncFolderUri = state.syncFolderUri,
-                        onSyncFolderSelected = onSyncFolderSelected,
-                        onSyncFolderCleared = onSyncFolderCleared
+                if (!isLocked) {
+                    AnimatedContent(
+                        targetState = selectedIndex,
+                        transitionSpec = {
+                            when (effectiveNavAnimationStyle) {
+                                NavigationAnimationStyle.SLIDE ->
+                                    (slideInHorizontally(initialOffsetX = { it / 6 }) + fadeIn(animationSpec = tween(220)))
+                                        .togetherWith(slideOutHorizontally(targetOffsetX = { -it / 6 }) + fadeOut(animationSpec = tween(180)))
+                                NavigationAnimationStyle.FADE ->
+                                    fadeIn(animationSpec = tween(220))
+                                        .togetherWith(fadeOut(animationSpec = tween(180)))
+                                NavigationAnimationStyle.ZOOM ->
+                                    (scaleIn(initialScale = 0.92f, animationSpec = tween(240)) + fadeIn(animationSpec = tween(220)))
+                                        .togetherWith(scaleOut(targetScale = 1.06f, animationSpec = tween(220)) + fadeOut(animationSpec = tween(180)))
+                                NavigationAnimationStyle.POP ->
+                                    (scaleIn(initialScale = 0.84f, animationSpec = tween(220)) + fadeIn(animationSpec = tween(200)))
+                                        .togetherWith(scaleOut(targetScale = 0.92f, animationSpec = tween(180)) + fadeOut(animationSpec = tween(160)))
+                                NavigationAnimationStyle.ROTATE ->
+                                    fadeIn(animationSpec = tween(210))
+                                        .togetherWith(fadeOut(animationSpec = tween(170)))
+                                NavigationAnimationStyle.NONE ->
+                                    EnterTransition.None.togetherWith(ExitTransition.None)
+                            }
+                        },
+                        modifier = Modifier.graphicsLayer(rotationZ = contentRotation.value),
+                        label = "tab-content"
+                    ) { index ->
+                        when (index) {
+                            0 -> DashboardScreen(
+                                state = state,
+                                currency = state.appSettings.currency
+                            )
+                            1 -> BookingsScreen(
+                                state = state,
+                                keepDateAfterSave = state.appSettings.keepDateAfterSave,
+                                dateFormat = state.appSettings.dateFormat,
+                                currency = state.appSettings.currency,
+                                sortNewestFirst = state.appSettings.bookingsSortNewestFirst,
+                                categorySuggestionsEnabled = state.appSettings.categorySuggestionsEnabled,
+                                onAddBooking = onAddBooking,
+                                onUpdateBooking = onUpdateBooking,
+                                onDeleteBooking = onDeleteBooking,
+                                onDeleteBookings = onDeleteBookings,
+                                onSetBookingTaxDeclaration = onSetBookingTaxDeclaration,
+                                onAddCustomCategory = onAddCustomCategory,
+                                onRenameCustomCategory = onRenameCustomCategory,
+                                onDeleteCustomCategory = onDeleteCustomCategory
+                            )
+                            2 -> ReportsScreen(
+                                state = state,
+                                defaultExportFormat = state.appSettings.defaultExportFormat,
+                                currency = state.appSettings.currency
+                            )
+                            3 -> SyncScreen(
+                                syncFolderUri = state.syncFolderUri,
+                                onSyncFolderSelected = onSyncFolderSelected,
+                                onSyncFolderCleared = onSyncFolderCleared
+                            )
+                            else -> SettingsScreen(
+                                state = state,
+                                settings = state.appSettings,
+                                onSettingsChanged = onUpdateAppSettings,
+                                onExportStateJson = onExportStateJson,
+                                onImportStateJson = onImportStateJson
+                            )
+                        }
+                    }
+                } else {
+                    LockedOverlay(
+                        prompt = appLockPrompt,
+                        error = authError,
+                        onUnlock = requestSystemAuth
                     )
                 }
             }
@@ -175,12 +386,69 @@ fun FinanceTrackerApp(
 }
 
 @Composable
+private fun LockedOverlay(
+    prompt: String,
+    error: String?,
+    onUnlock: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .clickable(enabled = true, onClick = {}),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .offset(y = (-66).dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_app_lock_title),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = prompt,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                if (!error.isNullOrBlank()) {
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                OutlinedButton(onClick = onUnlock) {
+                    Text(stringResource(R.string.settings_app_lock_unlock))
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun AnimatedScreenBackground(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    reduceAnimations: Boolean = false
 ) {
     var mix by remember { mutableStateOf(0f) }
     var direction by remember { mutableStateOf(1f) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(reduceAnimations) {
+        if (reduceAnimations) {
+            mix = 0.3f
+            return@LaunchedEffect
+        }
         while (true) {
             val next = mix + (0.03f * direction)
             if (next >= 1f) {
@@ -208,6 +476,22 @@ private fun AnimatedScreenBackground(
             )
         )
     )
+}
+
+private fun startTabToIndex(tab: AppStartTab): Int {
+    return when (tab) {
+        AppStartTab.OVERVIEW -> 0
+        AppStartTab.BOOKINGS -> 1
+        AppStartTab.REPORTS -> 2
+        AppStartTab.SYNC -> 3
+        AppStartTab.SETTINGS -> 4
+    }
+}
+
+private fun canUseSystemAuthentication(context: android.content.Context): Boolean {
+    val authenticators =
+        BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+    return BiometricManager.from(context).canAuthenticate(authenticators) == BiometricManager.BIOMETRIC_SUCCESS
 }
 
 private fun drawableToBitmap(drawable: Drawable): Bitmap {
@@ -355,7 +639,11 @@ private fun UserHeaderBar(
             }
         }
 
-        if (profileExpanded) {
+        AnimatedVisibility(
+            visible = profileExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
@@ -461,7 +749,12 @@ private fun UserHeaderBar(
                     }
                 }
             }
-        } else {
+        }
+        AnimatedVisibility(
+            visible = !profileExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center

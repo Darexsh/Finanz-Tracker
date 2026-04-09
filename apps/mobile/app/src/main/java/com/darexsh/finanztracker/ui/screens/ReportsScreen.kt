@@ -6,6 +6,7 @@ import android.graphics.pdf.PdfDocument
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,8 +61,11 @@ import com.darexsh.finanztracker.R
 import com.darexsh.finanztracker.domain.export.XlsxBuilder
 import com.darexsh.finanztracker.domain.export.XlsxSheet
 import com.darexsh.finanztracker.model.Booking
+import com.darexsh.finanztracker.model.CurrencyPreference
+import com.darexsh.finanztracker.model.ExportFormatPreference
 import com.darexsh.finanztracker.model.TrackerState
 import com.darexsh.finanztracker.model.TxType
+import com.darexsh.finanztracker.ui.formatCurrencyValue
 import java.io.ByteArrayOutputStream
 import java.text.DateFormatSymbols
 import java.text.SimpleDateFormat
@@ -72,7 +76,8 @@ private enum class ReportExportScope(val key: String) {
     SUMMARY("summary"),
     YEAR_COMPARISON("year-comparison"),
     YEAR_BOOKINGS("year-bookings"),
-    MONTH_BOOKINGS("month-bookings")
+    MONTH_BOOKINGS("month-bookings"),
+    TAX_BOOKINGS("tax-bookings")
 }
 
 private enum class ReportExportFormat(val extension: String) {
@@ -105,7 +110,11 @@ private data class MonthTotalsRow(
 }
 
 @Composable
-fun ReportsScreen(state: TrackerState) {
+fun ReportsScreen(
+    state: TrackerState,
+    defaultExportFormat: ExportFormatPreference = ExportFormatPreference.PDF,
+    currency: CurrencyPreference = CurrencyPreference.EUR
+) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val exportSuccessText = stringResource(R.string.report_export_success)
@@ -119,7 +128,14 @@ fun ReportsScreen(state: TrackerState) {
     val prevYear = selectedYear - 1
 
     var exportScope by remember { mutableStateOf(ReportExportScope.SUMMARY) }
-    var exportFormat by remember { mutableStateOf(ReportExportFormat.PDF) }
+    val initialExportFormat = remember(defaultExportFormat) {
+        when (defaultExportFormat) {
+            ExportFormatPreference.PDF -> ReportExportFormat.PDF
+            ExportFormatPreference.XLSX -> ReportExportFormat.XLSX
+            ExportFormatPreference.CSV -> ReportExportFormat.CSV
+        }
+    }
+    var exportFormat by remember(initialExportFormat) { mutableStateOf(initialExportFormat) }
     var exportMonth by remember { mutableStateOf(currentMonth) }
     var pendingExport by remember { mutableStateOf<ExportPayload?>(null) }
 
@@ -185,8 +201,21 @@ fun ReportsScreen(state: TrackerState) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                text = stringResource(R.string.screen_reports),
+                style = MaterialTheme.typography.headlineSmall
+            )
+        }
+
+        item {
+            Card(
+                modifier = Modifier.animateContentSize(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     Text(stringResource(R.string.report_panel_title), style = MaterialTheme.typography.titleMedium)
                     OutlinedTextField(
                         value = selectedYearText,
@@ -202,12 +231,14 @@ fun ReportsScreen(state: TrackerState) {
                             ReportExportScope.YEAR_COMPARISON -> stringResource(R.string.export_scope_year_comparison)
                             ReportExportScope.YEAR_BOOKINGS -> stringResource(R.string.export_scope_year_bookings)
                             ReportExportScope.MONTH_BOOKINGS -> stringResource(R.string.export_scope_month_bookings)
+                            ReportExportScope.TAX_BOOKINGS -> stringResource(R.string.export_scope_tax_bookings)
                         },
                         options = listOf(
                             stringResource(R.string.export_scope_summary) to ReportExportScope.SUMMARY,
                             stringResource(R.string.export_scope_year_comparison) to ReportExportScope.YEAR_COMPARISON,
                             stringResource(R.string.export_scope_year_bookings) to ReportExportScope.YEAR_BOOKINGS,
-                            stringResource(R.string.export_scope_month_bookings) to ReportExportScope.MONTH_BOOKINGS
+                            stringResource(R.string.export_scope_month_bookings) to ReportExportScope.MONTH_BOOKINGS,
+                            stringResource(R.string.export_scope_tax_bookings) to ReportExportScope.TAX_BOOKINGS
                         ),
                         onSelected = { exportScope = it }
                     )
@@ -245,9 +276,15 @@ fun ReportsScreen(state: TrackerState) {
                             onClick = { startExport() },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(34.dp)
+                                .height(34.dp),
+                            contentPadding = PaddingValues(0.dp)
                         ) {
-                            Text(stringResource(R.string.button_export))
+                            Text(
+                                text = stringResource(R.string.button_export),
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }
@@ -255,8 +292,14 @@ fun ReportsScreen(state: TrackerState) {
         }
 
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Card(
+                modifier = Modifier.animateContentSize(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Text(stringResource(R.string.report_compare_table_title), style = MaterialTheme.typography.titleMedium)
                     TableHeader(
                         listOf(
@@ -267,15 +310,21 @@ fun ReportsScreen(state: TrackerState) {
                         )
                     )
                     compareRows.forEach { row ->
-                        CompareTableRow(row = row)
+                        CompareTableRow(row = row, currency = currency)
                     }
                 }
             }
         }
 
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Card(
+                modifier = Modifier.animateContentSize(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Text(stringResource(R.string.report_month_table_title), style = MaterialTheme.typography.titleMedium)
                     TableHeader(
                         listOf(
@@ -289,9 +338,9 @@ fun ReportsScreen(state: TrackerState) {
                         TableRow(
                             listOf(
                                 row.monthLabel,
-                                formatCurrency(row.income),
-                                formatCurrency(row.expense),
-                                formatCurrency(row.balance)
+                                formatCurrency(row.income, currency),
+                                formatCurrency(row.expense, currency),
+                                formatCurrency(row.balance, currency)
                             )
                         )
                     }
@@ -461,17 +510,20 @@ private fun TableRow(columns: List<String>) {
 }
 
 @Composable
-private fun CompareTableRow(row: CompareRow) {
+private fun CompareTableRow(
+    row: CompareRow,
+    currency: CurrencyPreference = CurrencyPreference.EUR
+) {
     val deltaClassColor = when {
         row.delta > 0 -> Color(0xFF047857)
         row.delta < 0 -> Color(0xFFB91C1C)
         else -> MaterialTheme.colorScheme.onSurface
     }
     val deltaSign = if (row.delta > 0) "+" else ""
-    val previousText = if (row.isCurrency) formatCurrency(row.previous) else row.previous.toInt().toString()
-    val currentText = if (row.isCurrency) formatCurrency(row.current) else row.current.toInt().toString()
+    val previousText = if (row.isCurrency) formatCurrency(row.previous, currency) else row.previous.toInt().toString()
+    val currentText = if (row.isCurrency) formatCurrency(row.current, currency) else row.current.toInt().toString()
     val deltaValueText = if (row.isCurrency) {
-        "$deltaSign${formatCurrency(row.delta)}"
+        "$deltaSign${formatCurrency(row.delta, currency)}"
     } else {
         "$deltaSign${row.delta.toInt()}"
     }
@@ -569,6 +621,7 @@ private fun reportExportFilename(
         ReportExportScope.YEAR_COMPARISON -> "jahresvergleich_${year}_vs_${year - 1}.${format.extension}"
         ReportExportScope.YEAR_BOOKINGS -> "buchungen_${year}.${format.extension}"
         ReportExportScope.MONTH_BOOKINGS -> "buchungen_${month.toString().padStart(2, '0')}_${year}.${format.extension}"
+        ReportExportScope.TAX_BOOKINGS -> "buchungen_steuererklaerung_${year}.${format.extension}"
     }
 }
 
@@ -601,6 +654,10 @@ private fun buildCsvContent(
         ReportExportScope.MONTH_BOOKINGS -> {
             sb.append("Date;Description;Category;Type;Amount;Account;Note;Tax\n")
             bookingsForMonth(state, year, month).forEach { sb.append(bookingCsvLine(it)).append('\n') }
+        }
+        ReportExportScope.TAX_BOOKINGS -> {
+            sb.append("Date;Description;Category;Type;Amount;Account;Note;Tax\n")
+            bookingsForTaxDeclaration(state, year).forEach { sb.append(bookingCsvLine(it)).append('\n') }
         }
     }
     return sb.toString()
@@ -675,6 +732,17 @@ private fun buildDesktopLikeXlsxBytes(
             bookingsForMonth(state, year, month).forEach { b -> rows.add(bookingXlsxRow(b)) }
             XlsxSheet(name = "Buchungen ${month.toString().padStart(2, '0')}-$year", rows = rows)
         }
+        ReportExportScope.TAX_BOOKINGS -> {
+            val rows = mutableListOf<List<String>>(
+                listOf("Export", "Finanz Tracker Buchungsliste Steuererklärung"),
+                listOf("Zeitraum", year.toString()),
+                listOf("Währung", "EUR"),
+                emptyList(),
+                listOf("Datum", "Beschreibung", "Kategorie", "Typ", "Betrag", "Konto", "Steuererklärung", "Notiz")
+            )
+            bookingsForTaxDeclaration(state, year).forEach { b -> rows.add(bookingXlsxRow(b)) }
+            XlsxSheet(name = "Steuererklaerung $year", rows = rows)
+        }
     }
 
     return XlsxBuilder.buildWorkbook(listOf(sheet))
@@ -723,6 +791,11 @@ private fun bookingsForMonth(state: TrackerState, year: Int, month: Int): List<B
     }
 }
 
+private fun bookingsForTaxDeclaration(state: TrackerState, year: Int): List<Booking> =
+    state.bookings
+        .filter { it.userId == state.activeUserId && it.taxDeclaration && it.date.takeLast(4) == year.toString() }
+        .sortedByDescending { it.createdAt }
+
 private fun buildDesktopLikePdfBytes(
     state: TrackerState,
     year: Int,
@@ -734,6 +807,7 @@ private fun buildDesktopLikePdfBytes(
         ReportExportScope.YEAR_COMPARISON -> buildPdfComparisonBytes(state, year)
         ReportExportScope.YEAR_BOOKINGS -> buildPdfBookingsBytes(state, year, month = null)
         ReportExportScope.MONTH_BOOKINGS -> buildPdfBookingsBytes(state, year, month = month)
+        ReportExportScope.TAX_BOOKINGS -> buildPdfTaxBookingsBytes(state, year)
     }
 }
 
@@ -882,6 +956,60 @@ private fun buildPdfBookingsBytes(state: TrackerState, year: Int, month: Int?): 
     return writePdfDocument(document)
 }
 
+private fun buildPdfTaxBookingsBytes(state: TrackerState, year: Int): ByteArray {
+    val rowsSource = bookingsForTaxDeclaration(state, year)
+    val createdAt = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.GERMANY).format(Date())
+
+    val income = rowsSource.filter { it.txType == TxType.INCOME }.sumOf { it.amount }
+    val expense = rowsSource.filter { it.txType == TxType.EXPENSE }.sumOf { it.amount }
+    val net = income - expense
+
+    val body = rowsSource.map { b ->
+        listOf(
+            b.date,
+            b.description,
+            b.category,
+            if (b.txType == TxType.INCOME) "Einnahme" else "Ausgabe",
+            formatCurrency(b.amount),
+            b.account,
+            if (b.taxDeclaration) "Ja" else "Nein",
+            b.note
+        )
+    }
+
+    val document = PdfDocument()
+    val page = document.startPage(PdfDocument.PageInfo.Builder(842, 595, 1).create())
+    val canvas = page.canvas
+
+    val titlePaint = Paint().apply { textSize = 14f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
+    val metaPaint = Paint().apply { textSize = 10f }
+
+    canvas.drawText("Finanz Tracker Buchungsliste Steuererklärung", 40f, 44f, titlePaint)
+    canvas.drawText("Zeitraum: $year", 40f, 66f, metaPaint)
+    canvas.drawText("Erstellt am: $createdAt", 40f, 82f, metaPaint)
+    canvas.drawText("Währung: EUR", 40f, 98f, metaPaint)
+
+    val finalY = drawPdfTable(
+        canvas = canvas,
+        startX = 40f,
+        startY = 116f,
+        columnWidths = floatArrayOf(64f, 160f, 112f, 58f, 68f, 90f, 78f, 118f),
+        head = listOf("Datum", "Beschreibung", "Kategorie", "Typ", "Betrag", "Konto", "Steuererklärung", "Notiz"),
+        body = body
+    )
+
+    val totalsPaint = Paint().apply { textSize = 10f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
+    canvas.drawText(
+        "Buchungen: ${rowsSource.size}   Einnahmen: ${formatCurrency(income)}   Ausgaben: ${formatCurrency(expense)}   Saldo: ${formatCurrency(net)}",
+        40f,
+        (finalY + 22f).coerceAtMost(575f),
+        totalsPaint
+    )
+
+    document.finishPage(page)
+    return writePdfDocument(document)
+}
+
 private fun drawPdfTable(
     canvas: android.graphics.Canvas,
     startX: Float,
@@ -934,4 +1062,7 @@ private fun monthLabels(): List<String> =
     }
 
 private fun fmt(value: Double): String = String.format(Locale.US, "%.2f", value)
-private fun formatCurrency(value: Double): String = String.format(Locale.GERMANY, "%.2f €", value)
+private fun formatCurrency(
+    value: Double,
+    currency: CurrencyPreference = CurrencyPreference.EUR
+): String = formatCurrencyValue(value, currency)

@@ -245,7 +245,10 @@ class DefaultTrackerService(
     override suspend fun autoLoadFromSyncOnStart(state: TrackerState): TrackerState? {
         val syncUri = state.syncFolderUri ?: return null
         val synced = loadSyncState(syncUri) ?: return null
-        return synced.copy(syncFolderUri = syncUri)
+        return synced.copy(
+            syncFolderUri = syncUri,
+            appSettings = state.appSettings
+        )
     }
 
     override suspend fun persistState(state: TrackerState, writeSyncFile: Boolean) = withContext(Dispatchers.IO) {

@@ -1,5 +1,6 @@
 package com.darexsh.finanztracker.ui.screens
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -48,8 +49,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import com.darexsh.finanztracker.R
+import com.darexsh.finanztracker.model.CurrencyPreference
 import com.darexsh.finanztracker.model.TrackerState
 import com.darexsh.finanztracker.model.TxType
+import com.darexsh.finanztracker.ui.FinanceLabelLocalizer
+import com.darexsh.finanztracker.ui.formatCurrencyValue
 import kotlin.math.max
 import kotlin.math.min
 import java.text.DateFormatSymbols
@@ -61,7 +65,10 @@ private data class TopCategoryRow(val category: String, val amount: Double)
 private data class MonthTrendRow(val month: String, val income: Double, val expense: Double)
 
 @Composable
-fun DashboardScreen(state: TrackerState) {
+fun DashboardScreen(
+    state: TrackerState,
+    currency: CurrencyPreference = CurrencyPreference.EUR
+) {
     val activeBookings = state.bookings.filter { it.userId == state.activeUserId }
     val totalIncome = activeBookings.filter { it.txType == TxType.INCOME }.sumOf { it.amount }
     val totalExpense = activeBookings.filter { it.txType == TxType.EXPENSE }.sumOf { it.amount }
@@ -139,12 +146,12 @@ fun DashboardScreen(state: TrackerState) {
                 ) {
                     SummaryCard(
                         title = stringResource(R.string.summary_current_balance),
-                        value = stringResource(R.string.format_eur, balance),
+                        value = formatCurrencyValue(balance, currency),
                         modifier = Modifier.weight(1f)
                     )
                     SummaryCard(
                         title = stringResource(R.string.summary_income),
-                        value = stringResource(R.string.format_eur, monthlyIncome),
+                        value = formatCurrencyValue(monthlyIncome, currency),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -154,12 +161,12 @@ fun DashboardScreen(state: TrackerState) {
                 ) {
                     SummaryCard(
                         title = stringResource(R.string.summary_expense),
-                        value = stringResource(R.string.format_eur, monthlyExpense),
+                        value = formatCurrencyValue(monthlyExpense, currency),
                         modifier = Modifier.weight(1f)
                     )
                     SummaryCard(
                         title = stringResource(R.string.summary_monthly_surplus),
-                        value = stringResource(R.string.format_eur, monthlySurplus),
+                        value = formatCurrencyValue(monthlySurplus, currency),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -167,7 +174,10 @@ fun DashboardScreen(state: TrackerState) {
         }
 
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Card(
+                modifier = Modifier.animateContentSize(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
                 Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -193,8 +203,11 @@ fun DashboardScreen(state: TrackerState) {
                     } else {
                         topCategories.forEach { row ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(row.category, style = MaterialTheme.typography.bodyMedium)
-                                Text(stringResource(R.string.format_eur, row.amount), style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    FinanceLabelLocalizer.localizeCategory(row.category, Locale.getDefault()),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(formatCurrencyValue(row.amount, currency), style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }
@@ -203,7 +216,10 @@ fun DashboardScreen(state: TrackerState) {
         }
 
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Card(
+                modifier = Modifier.animateContentSize(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
                 Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -239,6 +255,7 @@ fun DashboardScreen(state: TrackerState) {
                         MonthlyCashflowChart(
                             rows = monthTrend,
                             selectedYear = selectedTrendYear,
+                            currency = currency,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -344,6 +361,7 @@ private fun DashboardMonthSelect(
 private fun MonthlyCashflowChart(
     rows: List<MonthTrendRow>,
     selectedYear: Int,
+    currency: CurrencyPreference,
     modifier: Modifier = Modifier
 ) {
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
@@ -579,17 +597,17 @@ private fun MonthlyCashflowChart(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "${stringResource(R.string.report_income)}: ${stringResource(R.string.format_eur, row.income)}",
+                        text = "${stringResource(R.string.report_income)}: ${formatCurrencyValue(row.income, currency)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF0F766E)
                     )
                     Text(
-                        text = "${stringResource(R.string.report_expense)}: ${stringResource(R.string.format_eur, row.expense)}",
+                        text = "${stringResource(R.string.report_expense)}: ${formatCurrencyValue(row.expense, currency)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFDC2626)
                     )
                     Text(
-                        text = "${stringResource(R.string.report_balance)}: ${stringResource(R.string.format_eur, saldo)}",
+                        text = "${stringResource(R.string.report_balance)}: ${formatCurrencyValue(saldo, currency)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF1D4ED8)
                     )
@@ -609,7 +627,7 @@ private fun compactAxisValue(value: Double): String {
 @Composable
 private fun SummaryCard(title: String, value: String, modifier: Modifier = Modifier) {
     Card(
-        modifier = modifier,
+        modifier = modifier.animateContentSize(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {

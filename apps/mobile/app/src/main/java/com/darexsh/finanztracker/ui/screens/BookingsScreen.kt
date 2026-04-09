@@ -2,6 +2,7 @@ package com.darexsh.finanztracker.ui.screens
 
 import android.app.DatePickerDialog
 import android.widget.Toast
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -61,8 +62,14 @@ import com.darexsh.finanztracker.domain.BookingDraft
 import com.darexsh.finanztracker.domain.CategoryMutationStatus
 import com.darexsh.finanztracker.domain.FinanceCatalog
 import com.darexsh.finanztracker.model.Booking
+import com.darexsh.finanztracker.model.CurrencyPreference
+import com.darexsh.finanztracker.model.DateFormatPreference
 import com.darexsh.finanztracker.model.TrackerState
 import com.darexsh.finanztracker.model.TxType
+import com.darexsh.finanztracker.ui.canonicalDateToDisplay
+import com.darexsh.finanztracker.ui.displayDateToCanonical
+import com.darexsh.finanztracker.ui.FinanceLabelLocalizer
+import com.darexsh.finanztracker.ui.formatCurrencyValue
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -75,6 +82,11 @@ private enum class TypeFilter { ALL, EXPENSE, INCOME }
 @Composable
 fun BookingsScreen(
     state: TrackerState,
+    keepDateAfterSave: Boolean = true,
+    dateFormat: DateFormatPreference = DateFormatPreference.DMY_DOT,
+    currency: CurrencyPreference = CurrencyPreference.EUR,
+    sortNewestFirst: Boolean = true,
+    categorySuggestionsEnabled: Boolean = true,
     onAddBooking: (draft: BookingDraft) -> Unit,
     onUpdateBooking: (bookingId: String, draft: BookingDraft) -> Unit,
     onDeleteBooking: (bookingId: String) -> Unit,
@@ -88,8 +100,8 @@ fun BookingsScreen(
     val focusManager = LocalFocusManager.current
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    val todayDate = remember { SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).format(Date()) }
-    var bookingDate by remember { mutableStateOf(todayDate) }
+    val todayCanonical = remember { SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).format(Date()) }
+    var bookingDate by remember(dateFormat) { mutableStateOf(canonicalDateToDisplay(todayCanonical, dateFormat)) }
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var dateError by remember { mutableStateOf<String?>(null) }
@@ -97,8 +109,22 @@ fun BookingsScreen(
     var amountError by remember { mutableStateOf<String?>(null) }
     val defaultCategory = stringResource(R.string.default_category)
     val defaultAccount = stringResource(R.string.default_account)
-    var category by remember(defaultCategory) { mutableStateOf(defaultCategory) }
-    var account by remember(defaultAccount) { mutableStateOf(defaultAccount) }
+    val defaultCategoryStorage = remember(defaultCategory) { FinanceCatalog.normalizeCategory(defaultCategory) }
+    val defaultAccountStorage = remember(defaultAccount) {
+        FinanceCatalog.accounts.firstOrNull() ?: defaultAccount
+    }
+    val uiLocale = remember(context) {
+        val locales = context.resources.configuration.locales
+        if (!locales.isEmpty) locales[0] else Locale.getDefault()
+    }
+    val localizeCategoryLabel: (String) -> String = { value ->
+        FinanceLabelLocalizer.localizeCategory(value, uiLocale)
+    }
+    val localizeAccountLabel: (String) -> String = { value ->
+        FinanceLabelLocalizer.localizeAccount(value, uiLocale)
+    }
+    var category by remember(defaultCategoryStorage) { mutableStateOf(defaultCategoryStorage) }
+    var account by remember(defaultAccountStorage) { mutableStateOf(defaultAccountStorage) }
     var note by remember { mutableStateOf("") }
     var txType by remember { mutableStateOf(TxType.EXPENSE) }
     var taxDeclaration by remember { mutableStateOf(false) }
@@ -134,14 +160,15 @@ fun BookingsScreen(
     }
     val currentYear = remember { SimpleDateFormat("yyyy", Locale.GERMANY).format(Date()) }
 
-    val activeBookings = remember(state.bookings, state.activeUserId) {
+    val activeBookings = remember(state.bookings, state.activeUserId, sortNewestFirst) {
         state.bookings
             .asSequence()
             .filter { it.userId == state.activeUserId }
-            .sortedWith(
-                compareByDescending<Booking> { bookingDateSortKey(it.date) }
-                    .thenByDescending { it.createdAt }
-            )
+            .sortedWith(if (sortNewestFirst) {
+                compareByDescending<Booking> { bookingDateSortKey(it.date) }.thenByDescending { it.createdAt }
+            } else {
+                compareBy<Booking> { bookingDateSortKey(it.date) }.thenBy { it.createdAt }
+            })
             .toList()
     }
     val activeBookingIds = remember(activeBookings) { activeBookings.map { it.id }.toSet() }
@@ -159,15 +186,15 @@ fun BookingsScreen(
             }
         }
     }
-    val categoryOptions = remember(state.customCategories, activeBookings, defaultCategory) {
-        (FinanceCatalog.categories + state.customCategories + activeBookings.map { it.category } + defaultCategory)
+    val categoryOptions = remember(state.customCategories, activeBookings, defaultCategoryStorage) {
+        (FinanceCatalog.categories + state.customCategories + activeBookings.map { it.category } + defaultCategoryStorage)
             .map { it.trim() }
             .filter { it.isNotBlank() }
             .distinctBy { it.lowercase() }
             .sortedBy { it.lowercase() }
     }
-    val accountOptions = remember(activeBookings, defaultAccount) {
-        (FinanceCatalog.accounts + activeBookings.map { it.account } + defaultAccount)
+    val accountOptions = remember(activeBookings, defaultAccountStorage) {
+        (FinanceCatalog.accounts + activeBookings.map { it.account } + defaultAccountStorage)
             .map { it.trim() }
             .filter { it.isNotBlank() }
             .distinctBy { it.lowercase() }
@@ -225,15 +252,15 @@ fun BookingsScreen(
 
     fun resetForm(resetDateToToday: Boolean = true) {
         if (resetDateToToday) {
-            bookingDate = todayDate
+            bookingDate = canonicalDateToDisplay(todayCanonical, dateFormat)
         }
         description = ""
         amount = ""
         dateError = null
         descriptionError = null
         amountError = null
-        category = defaultCategory
-        account = defaultAccount
+        category = defaultCategoryStorage
+        account = defaultAccountStorage
         note = ""
         txType = TxType.EXPENSE
         taxDeclaration = false
@@ -258,17 +285,15 @@ fun BookingsScreen(
 
     fun openDatePicker() {
         val calendar = Calendar.getInstance()
-        val parsed = runCatching {
-            SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).parse(bookingDate)
-        }.getOrNull()
-        if (parsed != null) {
-            calendar.time = parsed
-        }
+        val canonical = displayDateToCanonical(bookingDate, dateFormat)
+        val parsed = runCatching { canonical?.let { SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).parse(it) } }.getOrNull()
+        if (parsed != null) calendar.time = parsed
 
         DatePickerDialog(
             context,
             { _, year, month, dayOfMonth ->
-                bookingDate = String.format(Locale.GERMANY, "%02d.%02d.%04d", dayOfMonth, month + 1, year)
+                val canonicalDate = String.format(Locale.GERMANY, "%02d.%02d.%04d", dayOfMonth, month + 1, year)
+                bookingDate = canonicalDateToDisplay(canonicalDate, dateFormat)
                 dateError = null
                 focusManager.clearFocus(force = true)
             },
@@ -297,7 +322,9 @@ fun BookingsScreen(
 
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
@@ -346,9 +373,9 @@ fun BookingsScreen(
                         onValueChange = { newValue ->
                             description = newValue
                             descriptionError = null
-                            if (!categoryManuallyOverridden) {
+                            if (categorySuggestionsEnabled && !categoryManuallyOverridden) {
                                 val suggestion = FinanceCatalog.suggestCategory(newValue, categoryOptions) ?: return@OutlinedTextField
-                                if (category == defaultCategory || category.equals(lastAutoCategory, ignoreCase = true)) {
+                                if (category == defaultCategoryStorage || category.equals(lastAutoCategory, ignoreCase = true)) {
                                     category = suggestion
                                     lastAutoCategory = suggestion
                                 }
@@ -395,6 +422,7 @@ fun BookingsScreen(
                             label = { Text(stringResource(R.string.label_category)) },
                             options = categoryOptions,
                             readOnly = true,
+                            displayValue = localizeCategoryLabel,
                             modifier = Modifier.weight(1f)
                         )
                         SelectableField(
@@ -403,6 +431,7 @@ fun BookingsScreen(
                             label = { Text(stringResource(R.string.label_account)) },
                             options = accountOptions,
                             readOnly = true,
+                            displayValue = localizeAccountLabel,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -549,7 +578,8 @@ fun BookingsScreen(
                         Button(
                             onClick = {
                                 val parsed = amount.replace(',', '.').toDoubleOrNull()
-                                val missingDate = bookingDate.isBlank()
+                                val canonicalDate = displayDateToCanonical(bookingDate, dateFormat)
+                                val missingDate = canonicalDate.isNullOrBlank()
                                 val missingDescription = description.isBlank()
                                 val invalidAmount = amount.isBlank() || parsed == null
 
@@ -563,7 +593,7 @@ fun BookingsScreen(
                                     onUpdateBooking(
                                         editingBookingId!!,
                                         BookingDraft(
-                                            date = bookingDate,
+                                            date = canonicalDate.orEmpty(),
                                             description = description,
                                             amount = parsed!!,
                                             category = category,
@@ -576,7 +606,7 @@ fun BookingsScreen(
                                 } else {
                                     onAddBooking(
                                         BookingDraft(
-                                            date = bookingDate,
+                                            date = canonicalDate.orEmpty(),
                                             description = description,
                                             amount = parsed!!,
                                             category = category,
@@ -588,7 +618,7 @@ fun BookingsScreen(
                                     )
                                 }
 
-                                resetForm(resetDateToToday = false)
+                                resetForm(resetDateToToday = !keepDateAfterSave)
                             },
                             modifier = Modifier.weight(1f)
                         ) {
@@ -614,7 +644,9 @@ fun BookingsScreen(
 
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
@@ -670,6 +702,7 @@ fun BookingsScreen(
                             label = { Text(stringResource(R.string.filter_category)) },
                             options = listOf(allCategoriesLabel) + categoryOptions,
                             readOnly = true,
+                            displayValue = localizeCategoryLabel,
                             modifier = Modifier.weight(1f)
                         )
                         SelectableField(
@@ -680,6 +713,7 @@ fun BookingsScreen(
                             label = { Text(stringResource(R.string.filter_account)) },
                             options = listOf(allAccountsLabel) + accountOptions,
                             readOnly = true,
+                            displayValue = localizeAccountLabel,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -745,7 +779,9 @@ fun BookingsScreen(
 
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
@@ -788,7 +824,12 @@ fun BookingsScreen(
             contentType = { "booking-row" }
         ) { booking ->
             BookingRow(
+                modifier = Modifier,
                 booking = booking,
+                dateFormat = dateFormat,
+                currency = currency,
+                localizeCategoryLabel = localizeCategoryLabel,
+                localizeAccountLabel = localizeAccountLabel,
                 selected = selectedBookingIds.contains(booking.id),
                 onSelectChanged = { checked ->
                     if (checked) {
@@ -799,7 +840,7 @@ fun BookingsScreen(
                 },
                 onEdit = {
                     editingBookingId = booking.id
-                    bookingDate = booking.date
+                    bookingDate = canonicalDateToDisplay(booking.date, dateFormat)
                     description = booking.description
                     amount = formatAmountForInput(booking.amount)
                     category = booking.category
@@ -887,7 +928,7 @@ fun BookingsScreen(
                     onClick = {
                         val result = onDeleteCustomCategory(selectedCategory)
                         if (result == CategoryMutationStatus.SUCCESS) {
-                            category = defaultCategory
+                            category = defaultCategoryStorage
                             categoryManuallyOverridden = false
                             showDeleteCategoryDialog = false
                         } else {
@@ -943,6 +984,7 @@ private fun SelectableField(
     label: @Composable () -> Unit,
     options: List<String>,
     readOnly: Boolean,
+    displayValue: (String) -> String = { it },
     preferAbove: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -961,7 +1003,7 @@ private fun SelectableField(
     }
     Column(modifier = modifier) {
         OutlinedTextField(
-            value = value,
+            value = displayValue(value),
             onValueChange = {
                 if (!readOnly) {
                     onValueChange(it)
@@ -1003,7 +1045,7 @@ private fun SelectableField(
             ) {
                 shownOptions.forEach { option ->
                     DropdownMenuItem(
-                        text = { Text(option) },
+                        text = { Text(displayValue(option)) },
                         onClick = {
                             onValueChange(option)
                             expanded = false
@@ -1018,7 +1060,12 @@ private fun SelectableField(
 
 @Composable
 private fun BookingRow(
+    modifier: Modifier = Modifier,
     booking: Booking,
+    dateFormat: DateFormatPreference,
+    currency: CurrencyPreference,
+    localizeCategoryLabel: (String) -> String,
+    localizeAccountLabel: (String) -> String,
     selected: Boolean,
     onSelectChanged: (Boolean) -> Unit,
     onEdit: () -> Unit,
@@ -1037,10 +1084,15 @@ private fun BookingRow(
         MaterialTheme.colorScheme.surface
     }
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(),
         colors = CardDefaults.cardColors(containerColor = cardContainerColor)
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1073,14 +1125,14 @@ private fun BookingRow(
                     )
                 }
             }
-            Text("${booking.date} · ${booking.description}")
+            Text("${canonicalDateToDisplay(booking.date, dateFormat)} · ${booking.description}")
             Text(
-                "${booking.category} · ${booking.account}",
+                "${localizeCategoryLabel(booking.category)} · ${localizeAccountLabel(booking.account)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                stringResource(R.string.format_booking_type_amount, txTypeLabel, booking.amount),
+                "$txTypeLabel · ${formatCurrencyValue(booking.amount, currency)}",
                 style = MaterialTheme.typography.titleSmall
             )
             if (booking.note.isNotBlank()) {

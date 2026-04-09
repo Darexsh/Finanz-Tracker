@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.darexsh.finanztracker.domain.BookingDraft
 import com.darexsh.finanztracker.domain.CategoryMutationStatus
 import com.darexsh.finanztracker.domain.TrackerService
+import com.darexsh.finanztracker.model.AppSettings
 import com.darexsh.finanztracker.model.TrackerState
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,6 +22,7 @@ import kotlinx.coroutines.withContext
 class AppViewModel(
     private val service: TrackerService
 ) : ViewModel() {
+    private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
     private val _state = MutableStateFlow(service.loadState())
     val state: StateFlow<TrackerState> = _state.asStateFlow()
@@ -119,7 +122,10 @@ class AppViewModel(
         viewModelScope.launch {
             val synced = service.loadSyncState(uri)
             if (synced != null) {
-                val merged = synced.copy(syncFolderUri = uri)
+                val merged = synced.copy(
+                    syncFolderUri = uri,
+                    appSettings = _state.value.appSettings
+                )
                 _state.value = merged
                 service.persistLocalState(merged)
             }
@@ -134,6 +140,28 @@ class AppViewModel(
         val newState = service.clearSyncFolderUri(current)
         updateState(newState, writeSyncFile = false)
         stopSyncAutoRefresh()
+    }
+
+    fun updateAppSettings(settings: AppSettings) {
+        val current = _state.value
+        updateState(current.copy(appSettings = settings), writeSyncFile = false)
+    }
+
+    fun exportStateJson(): String {
+        return json.encodeToString(TrackerState.serializer(), _state.value)
+    }
+
+    fun importStateJson(raw: String): Boolean {
+        val parsed = runCatching {
+            json.decodeFromString(TrackerState.serializer(), raw)
+        }.getOrNull() ?: return false
+
+        val normalized = parsed.copy(
+            syncFolderUri = _state.value.syncFolderUri,
+            appSettings = _state.value.appSettings
+        )
+        updateState(normalized, writeSyncFile = true)
+        return true
     }
 
     private fun autoLoadFromSyncOnStart() {
@@ -165,7 +193,10 @@ class AppViewModel(
             while (isActive) {
                 runCatching {
                     val synced = service.loadSyncState(uri) ?: return@runCatching
-                    val merged = synced.copy(syncFolderUri = uri)
+                    val merged = synced.copy(
+                        syncFolderUri = uri,
+                        appSettings = _state.value.appSettings
+                    )
                     val current = _state.value
                     val hasChanged = withContext(Dispatchers.Default) {
                         merged != current

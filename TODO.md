@@ -52,6 +52,9 @@
 - [x] Android-Buchungsformular: Datum bleibt nach Speichern erhalten; Rücksetzen auf aktuelles Datum nur über "Leeren" oder App-Neustart.
 - [x] Android-Buchungsformular: Datumseingabe um DatePicker mit Kalender-Icon erweitert (Tag/Monat/Jahr auswählbar).
 - [x] Desktop-Buchungsformular: Datumseingabe um DatePicker mit Kalender-Icon erweitert (Tag/Monat/Jahr auswählbar, Ausgabeformat bleibt TT.MM.JJJJ).
+- [x] Android-Einstellungen erweitert (Sprache, Datumsformat, Währung, Sortierung, Kategorie-Vorschläge, Schriftgröße, Navigationsanimation, App-Sperre, Backup/Import) mit lokaler Persistenz.
+- [x] Android-App-Sperre auf System-Authentifizierung umgestellt (Biometrie/Geräte-PIN), inkl. gesperrter Inhaltsansicht und Re-Authentifizierung beim Deaktivieren.
+- [x] Android-Settings um App-Info-Dialog (Top-Right `i`) mit Version, Entwicklerangabe und Aktionslinks erweitert.
 
 ## 5. Reports und Export
 
@@ -60,6 +63,7 @@
 - [x] Exportformate erweitern (XLSX, PDF).
 - [x] Export-Inhalt erweitern: Jahresübersicht sowie vollständige Buchungslisten für einzelnes Jahr oder einzelnen Monat (CSV/XLSX/PDF).
 - [x] Jahresvergleich (aktuelles Jahr vs. Vorjahr).
+- [x] Export-Inhalt erweitert: Steuererklärung-Buchungen im ausgewählten Jahr (CSV/XLSX/PDF).
 
 ## 6. Performance
 
@@ -96,6 +100,7 @@
 - [x] Monatsverlauf-Interaktion auf Android ergänzt: Tap auf Monatsbalken zeigt Detailwerte (Einnahmen, Ausgaben, Saldo) wie im Desktop-Tooltip.
 - [x] Dashboard-Top-Kategorien um eine Monatsauswahl erweitert (Desktop + Android).
 - [x] Interaktionsdetails angleichen (Toasts, Fokus, Zustandsfeedback, Empty States).
+- [x] Globale Navigationsanimationen (Slide/Fade/Zoom/Pop/Rotate/None) in Android ergänzt, inkl. Einstellung in den App-Settings.
 - [x] Android-App für den aktuellen Scope als final markiert (nur noch kleine UI-Polish-Themen offen).
 
 ## 9. Release/Operations

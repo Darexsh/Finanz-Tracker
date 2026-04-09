@@ -44,7 +44,7 @@ This project is an independent personal/open-source finance tracker.
 
 **Finanz Tracker** is an app to manage personal finances with multiple separated user profiles, fast booking workflows, dashboard insights, yearly reports, and optional cross-device sync via a local sync folder.
 
-The app is built with Tauri for desktop and includes an Android app (Kotlin + Compose) with SAF-based sync folder selection, sync-file auto-load/auto-save, background sync refresh while app is open, and an extended bookings workflow (create/edit/delete/filter/tax-flag/date input/custom-category management).
+The app is built with Tauri for desktop and includes an Android app (Kotlin + Compose) with SAF-based sync folder selection, sync-file auto-load/auto-save, background sync refresh while app is open, extended bookings workflow (create/edit/delete/filter/tax-flag/date input/custom-category management), and a settings tab with persistent options (language, date format, currency, sorting/suggestions, appearance, navigation animation style, system app lock, backup/import, and app-info panel).
 
 * * *
 
@@ -65,9 +65,9 @@ The app is built with Tauri for desktop and includes an Android app (Kotlin + Co
 
 * 🧷 **Tax declaration flag**: Mark bookings as tax-relevant directly in table; highlighted in yellow.
 
-* 📊 **Dashboard analytics**: KPI cards (`Aktueller Saldo`, `Einnahmen (Monat)`, `Ausgaben (Monat)`, `Monatsüberschuss`), selectable month for top categories, and monthly income/expense chart with tooltip details.
+* 📊 **Dashboard analytics**: KPI cards (`Current Balance`, `Income (Month)`, `Expense (Month)`, `Monthly Surplus`), selectable month for top categories, and monthly income/expense chart with tooltip details.
 
-* 🧮 **Yearly reports**: Monthly yearly summary plus year-over-year comparison (selected year vs. previous year), and flexible export content: yearly summary, year comparison, all bookings in a selected year, or all bookings in a selected month (CSV, XLSX, PDF with Save dialog). Export feedback is shown as toast notifications. CSV includes metadata and totals.
+* 🧮 **Yearly reports**: Monthly yearly summary plus year-over-year comparison (selected year vs. previous year), and flexible export content: yearly summary, year comparison, all bookings in a selected year, all bookings in a selected month, or tax-declaration bookings in the selected year (CSV, XLSX, PDF with Save dialog). Export feedback is shown as toast notifications. CSV includes metadata and totals.
 
 * 🔎 **Live filters**: Filter by month, year, type, category, account, and text with quick reset (desktop and Android parity).
 
@@ -145,9 +145,9 @@ cd "Finanz-Tracker/apps/mobile"
 
 1. 👤 **Select or create user profile** in the header.
 
-2. 🧾 **Add bookings** in `Buchungen → Neue Buchung`.
+2. 🧾 **Add bookings** in `Bookings -> New booking`.
 
-3. ✏️ **Update existing booking** via double-click on a table row, edit values, then `Speichern`.
+3. ✏️ **Update existing booking** via double-click on a table row, edit values, then `Save`.
 
 4. 🧷 **Toggle tax declaration** directly in the booking table checkbox column.
 
@@ -155,9 +155,9 @@ cd "Finanz-Tracker/apps/mobile"
 
 6. 📊 **View dashboard** for KPI and monthly chart.
 
-7. 📁 **Use report export** in `Auswertung`: choose year (report updates automatically on blur/Enter), export content (Jahresübersicht / Jahresvergleich / Jahresbuchungen / Monatsbuchungen), and format (PDF / XLSX / CSV).
+7. 📁 **Use report export** in `Reports`: choose year (report updates automatically on blur/Enter), export content (Year summary / Year comparison / Year bookings / Month bookings / Tax declaration bookings in year), and format (PDF / XLSX / CSV).
 
-8. 🔄 **Configure sync folder** in `Synchronisierung` for optional cross-device workflow.
+8. 🔄 **Configure sync folder** in `Sync` for optional cross-device workflow.
 
 * * *
 
