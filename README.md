@@ -189,24 +189,6 @@ Typical setup:
 
 * * *
 
-📂 Project Structure
---------------------
-
-```text
-Finanz-Tracker/
-├─ apps/
-│  ├─ desktop/             # Tauri desktop app (active)
-│  └─ mobile/              # Android app (active)
-├─ shared/
-│  ├─ domain/              # shared domain logic (planned)
-│  └─ utils/               # shared utilities (planned)
-├─ docs/                   # optional docs
-├─ TODO.md                 # roadmap and task tracking
-└─ Ausgaben im Jahr.xlsx   # original source spreadsheet
-```
-
-* * *
-
 🧰 Troubleshooting
 -----------------
 

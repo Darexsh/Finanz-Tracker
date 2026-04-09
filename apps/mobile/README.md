@@ -52,6 +52,4 @@ cd "apps/mobile"
 ```
 
 ## Notes
-- Gradle wrapper files are not committed yet; Android Studio can sync using installed/embedded Gradle.
 - For two-way sync tools (for example FolderSync), enable the setting to sync deleted files as well; otherwise deleted files can come back after sync.
-- Release runbook: see `RELEASE.md`.
