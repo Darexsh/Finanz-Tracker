@@ -156,6 +156,31 @@ label { display: grid; gap: 6px; font-size: .88rem; color: var(--muted); }
 .form-panel .form-grid label > select {
   align-self: start;
 }
+.date-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.date-input-row > input {
+  flex: 1;
+  min-width: 0;
+}
+.date-picker-btn {
+  min-width: 42px;
+  width: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+.native-date-picker {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
 .full-width { grid-column: 1 / -1; }
 .actions { display: flex; gap: 8px; }
 

@@ -71,7 +71,11 @@
             <form id="bookingForm" class="form-grid booking-form-grid" novalidate>
               <label class="col-4">
                 Datum (TT.MM.JJJJ)
-                <input id="monthInput" name="month" placeholder="02.04.2026" required />
+                <div class="date-input-row">
+                  <input id="monthInput" name="month" placeholder="02.04.2026" required />
+                  <button id="monthPickerBtn" class="btn secondary date-picker-btn" type="button" aria-label="Datum auswählen" title="Datum auswählen">📅</button>
+                  <input id="monthPickerNative" type="date" class="native-date-picker" tabindex="-1" aria-hidden="true" />
+                </div>
               </label>
               <label class="col-4">
                 Beschreibung

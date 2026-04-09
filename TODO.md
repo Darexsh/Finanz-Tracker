@@ -48,6 +48,10 @@
 - [x] Steuer-Checkbox pro Buchung ergänzt + gelbe Hervorhebung in der Tabelle.
 - [x] Zeilenauswahl in Buchungen per Klick außerhalb wieder aufheben.
 - [x] Layout von "Neue Buchung" neu angeordnet (kompakter und übersichtlicher).
+- [x] Buchungstabelle auf Android nach Buchungsdatum sortiert (neueste Datumseinträge zuerst, nicht nach Erstellzeitpunkt).
+- [x] Android-Buchungsformular: Datum bleibt nach Speichern erhalten; Rücksetzen auf aktuelles Datum nur über "Leeren" oder App-Neustart.
+- [x] Android-Buchungsformular: Datumseingabe um DatePicker mit Kalender-Icon erweitert (Tag/Monat/Jahr auswählbar).
+- [x] Desktop-Buchungsformular: Datumseingabe um DatePicker mit Kalender-Icon erweitert (Tag/Monat/Jahr auswählbar, Ausgabeformat bleibt TT.MM.JJJJ).
 
 ## 5. Reports und Export
 

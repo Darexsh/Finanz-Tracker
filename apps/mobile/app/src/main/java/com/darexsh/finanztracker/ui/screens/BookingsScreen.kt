@@ -1,5 +1,6 @@
 package com.darexsh.finanztracker.ui.screens
 
+import android.app.DatePickerDialog
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -15,6 +16,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -34,6 +37,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -61,6 +65,7 @@ import com.darexsh.finanztracker.model.TrackerState
 import com.darexsh.finanztracker.model.TxType
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -133,7 +138,10 @@ fun BookingsScreen(
         state.bookings
             .asSequence()
             .filter { it.userId == state.activeUserId }
-            .sortedByDescending { it.createdAt }
+            .sortedWith(
+                compareByDescending<Booking> { bookingDateSortKey(it.date) }
+                    .thenByDescending { it.createdAt }
+            )
             .toList()
     }
     val activeBookingIds = remember(activeBookings) { activeBookings.map { it.id }.toSet() }
@@ -215,8 +223,10 @@ fun BookingsScreen(
         }
     }
 
-    fun resetForm() {
-        bookingDate = todayDate
+    fun resetForm(resetDateToToday: Boolean = true) {
+        if (resetDateToToday) {
+            bookingDate = todayDate
+        }
         description = ""
         amount = ""
         dateError = null
@@ -244,6 +254,28 @@ fun BookingsScreen(
             }
             CategoryMutationStatus.NOT_FOUND -> categoryErrorNotFound
         }
+    }
+
+    fun openDatePicker() {
+        val calendar = Calendar.getInstance()
+        val parsed = runCatching {
+            SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).parse(bookingDate)
+        }.getOrNull()
+        if (parsed != null) {
+            calendar.time = parsed
+        }
+
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                bookingDate = String.format(Locale.GERMANY, "%02d.%02d.%04d", dayOfMonth, month + 1, year)
+                dateError = null
+                focusManager.clearFocus(force = true)
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
     }
 
     LazyColumn(
@@ -290,6 +322,14 @@ fun BookingsScreen(
                             dateError = null
                         },
                         label = { Text(stringResource(R.string.label_date)) },
+                        trailingIcon = {
+                            IconButton(onClick = { openDatePicker() }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.DateRange,
+                                    contentDescription = stringResource(R.string.label_date)
+                                )
+                            }
+                        },
                         singleLine = true,
                         isError = dateError != null,
                         modifier = Modifier.fillMaxWidth()
@@ -548,7 +588,7 @@ fun BookingsScreen(
                                     )
                                 }
 
-                                resetForm()
+                                resetForm(resetDateToToday = false)
                             },
                             modifier = Modifier.weight(1f)
                         ) {
@@ -562,7 +602,7 @@ fun BookingsScreen(
                         }
 
                         OutlinedButton(
-                            onClick = { resetForm() },
+                            onClick = { resetForm(resetDateToToday = true) },
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(stringResource(R.string.button_clear))
@@ -878,6 +918,18 @@ fun BookingsScreen(
             }
         )
     }
+}
+
+private fun bookingDateSortKey(date: String): Int {
+    val parts = date.split(".")
+    if (parts.size != 3) return Int.MIN_VALUE
+
+    val day = parts[0].toIntOrNull() ?: return Int.MIN_VALUE
+    val month = parts[1].toIntOrNull() ?: return Int.MIN_VALUE
+    val year = parts[2].toIntOrNull() ?: return Int.MIN_VALUE
+
+    if (day !in 1..31 || month !in 1..12 || year !in 1..9999) return Int.MIN_VALUE
+    return (year * 10_000) + (month * 100) + day
 }
 
 private fun formatAmountForInput(value: Double): String =

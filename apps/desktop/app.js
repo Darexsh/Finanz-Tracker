@@ -173,6 +173,8 @@ const el = {
 
   bookingForm: document.getElementById("bookingForm"),
   monthInput: document.getElementById("monthInput"),
+  monthPickerBtn: document.getElementById("monthPickerBtn"),
+  monthPickerNative: document.getElementById("monthPickerNative"),
   descriptionInput: document.getElementById("descriptionInput"),
   categoryInput: document.getElementById("categoryInput"),
   addCategoryBtn: document.getElementById("addCategoryBtn"),
@@ -753,6 +755,27 @@ function bindEvents() {
     input.addEventListener("input", () => clearFieldError(input));
   });
 
+  if (el.monthPickerBtn && el.monthPickerNative && el.monthInput) {
+    el.monthPickerBtn.addEventListener("click", () => {
+      const currentIso = dmyToIsoDate(el.monthInput.value);
+      if (currentIso) el.monthPickerNative.value = currentIso;
+      else el.monthPickerNative.value = dmyToIsoDate(parseMonth(el.monthInput.value)) || "";
+
+      if (typeof el.monthPickerNative.showPicker === "function") {
+        el.monthPickerNative.showPicker();
+      } else {
+        el.monthPickerNative.click();
+      }
+    });
+
+    el.monthPickerNative.addEventListener("change", () => {
+      const next = isoDateToDmy(el.monthPickerNative.value);
+      if (!next) return;
+      el.monthInput.value = next;
+      clearFieldError(el.monthInput);
+    });
+  }
+
   el.addCategoryBtn.addEventListener("click", async () => {
     const name = await askText("Name der neuen Kategorie:", "Kategorie anlegen");
     if (name === null) return;
@@ -1125,6 +1148,22 @@ function monthSortKey(dateStr) {
   const p = getDateParts(dateStr);
   if (!p) return 0;
   return p.yyyy * 10000 + p.mm * 100 + p.dd;
+}
+
+function dmyToIsoDate(dmy) {
+  const p = getDateParts(dmy);
+  if (!p) return "";
+  return `${String(p.yyyy).padStart(4, "0")}-${String(p.mm).padStart(2, "0")}-${String(p.dd).padStart(2, "0")}`;
+}
+
+function isoDateToDmy(iso) {
+  const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const yyyy = Number(m[1]);
+  const mm = Number(m[2]);
+  const dd = Number(m[3]);
+  if (yyyy < 2000 || yyyy > 2100 || mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+  return `${String(dd).padStart(2, "0")}.${String(mm).padStart(2, "0")}.${String(yyyy).padStart(4, "0")}`;
 }
 
 const LEARNED_CATEGORY_STOPWORDS = new Set([
