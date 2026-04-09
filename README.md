@@ -86,7 +86,7 @@ The app is built with Tauri for desktop and includes an Android app (Kotlin + Co
 
 Download the prebuilt app from the release page and run it directly:
 
-* Desktop: use the `.exe` installer
+* Desktop: use the `.exe` Application or the `.msi`-Installer to install it on your PC
 * Android: install the `.apk` file
 
 ### Desktop (Tauri)
