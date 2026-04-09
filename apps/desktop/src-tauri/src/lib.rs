@@ -511,6 +511,18 @@ fn write_report_binary(filename: String, content_base64: String) -> Result<Strin
   Ok(target.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+fn open_external_url(url: String) -> Result<(), String> {
+  let trimmed = url.trim();
+  if trimmed.is_empty() {
+    return Err("URL ist leer.".to_string());
+  }
+
+  webbrowser::open(trimmed)
+    .map(|_| ())
+    .map_err(|e| format!("Externer Browser konnte nicht geöffnet werden: {e}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -543,7 +555,8 @@ pub fn run() {
       sync_write_backup,
       sync_restore_latest,
       write_report_csv,
-      write_report_binary
+      write_report_binary,
+      open_external_url
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

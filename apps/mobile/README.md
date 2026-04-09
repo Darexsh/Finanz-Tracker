@@ -24,6 +24,7 @@ Android app workspace for Finanz Tracker.
 - Report screen with desktop-like panel/table structure, selectable year, year-over-year comparison, and monthly income/expense/balance breakdown.
 - Report export with desktop-like scope selection and save dialog (CSV/PDF/XLSX for summary, year-comparison, year-bookings, month-bookings, tax-declaration-bookings in selected year).
 - Settings screen with persistent app options (language, date format, currency, booking sort/suggestions, font size, navigation animation style, start tab, default export format, system app lock, backup export/import).
+- Settings include date formats `DD.MM.YYYY`, `YYYY-MM-DD`, `MM/DD/YYYY` and currencies `EUR` / `USD`.
 - Settings includes an App-Info button (`i`) with version/details and quick action links (email, social media, Telegram bot, GitHub profile, Buy Me a Coffee).
 - App lock uses Android system authentication (biometric/device credential), blocks content with lock overlay, and requires re-authentication before disabling the lock.
 - Sync tab with SAF folder picker (select/change/clear) and persisted URI permission.

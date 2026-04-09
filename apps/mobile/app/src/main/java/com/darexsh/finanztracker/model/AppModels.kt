@@ -47,8 +47,7 @@ enum class DateFormatPreference {
 @Serializable
 enum class CurrencyPreference {
     EUR,
-    USD,
-    GBP
+    USD
 }
 
 @Serializable

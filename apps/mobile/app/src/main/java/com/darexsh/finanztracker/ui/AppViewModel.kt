@@ -22,7 +22,7 @@ import kotlinx.coroutines.withContext
 class AppViewModel(
     private val service: TrackerService
 ) : ViewModel() {
-    private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
+    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true; prettyPrint = true }
 
     private val _state = MutableStateFlow(service.loadState())
     val state: StateFlow<TrackerState> = _state.asStateFlow()

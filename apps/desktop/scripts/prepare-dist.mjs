@@ -30,6 +30,12 @@ for (const file of files) {
   fs.copyFileSync(path.join(root, file), path.join(dist, file));
 }
 
+const assetsSrc = path.join(root, "assets");
+const assetsDest = path.join(dist, "assets");
+if (fs.existsSync(assetsSrc)) {
+  fs.cpSync(assetsSrc, assetsDest, { recursive: true });
+}
+
 const distVendor = path.join(dist, "vendor");
 fs.mkdirSync(distVendor, { recursive: true });
 for (const [, outRel] of vendorFiles) {

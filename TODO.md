@@ -55,6 +55,9 @@
 - [x] Android-Einstellungen erweitert (Sprache, Datumsformat, Währung, Sortierung, Kategorie-Vorschläge, Schriftgröße, Navigationsanimation, App-Sperre, Backup/Import) mit lokaler Persistenz.
 - [x] Android-App-Sperre auf System-Authentifizierung umgestellt (Biometrie/Geräte-PIN), inkl. gesperrter Inhaltsansicht und Re-Authentifizierung beim Deaktivieren.
 - [x] Android-Settings um App-Info-Dialog (Top-Right `i`) mit Version, Entwicklerangabe und Aktionslinks erweitert.
+- [x] Desktop-Einstellungen ergänzt (Währung, Buchungssortierung, Kategorie-Vorschläge, Schriftgröße, Backup Export/Import).
+- [x] Desktop-Einstellungen erweitert (Sprache, Datumsformat, Desktop-App-Sperre) mit sofortiger UI-Aktualisierung.
+- [x] Desktop-Settings-Parität erweitert (Start-Tab, Standard-Exportformat, Datum-beibehalten nach Speichern, Navigationsanimation, About/App-Info mit Aktionslinks).
 
 ## 5. Reports und Export
 

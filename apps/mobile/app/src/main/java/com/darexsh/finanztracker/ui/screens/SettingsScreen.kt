@@ -180,8 +180,7 @@ fun SettingsScreen(
                 selectedLabel = currencyLabel(settings.currency),
                 options = listOf(
                     currencyLabel(CurrencyPreference.EUR) to CurrencyPreference.EUR,
-                    currencyLabel(CurrencyPreference.USD) to CurrencyPreference.USD,
-                    currencyLabel(CurrencyPreference.GBP) to CurrencyPreference.GBP
+                    currencyLabel(CurrencyPreference.USD) to CurrencyPreference.USD
                 ),
                 onSelected = { onSettingsChanged(settings.copy(currency = it)) }
             )
@@ -719,7 +718,6 @@ private fun currencyLabel(currency: CurrencyPreference): String {
     return when (currency) {
         CurrencyPreference.EUR -> "EUR (€)"
         CurrencyPreference.USD -> "USD ($)"
-        CurrencyPreference.GBP -> "GBP (£)"
     }
 }
 

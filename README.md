@@ -44,7 +44,7 @@ This project is an independent personal/open-source finance tracker.
 
 **Finanz Tracker** is an app to manage personal finances with multiple separated user profiles, fast booking workflows, dashboard insights, yearly reports, and optional cross-device sync via a local sync folder.
 
-The app is built with Tauri for desktop and includes an Android app (Kotlin + Compose) with SAF-based sync folder selection, sync-file auto-load/auto-save, background sync refresh while app is open, extended bookings workflow (create/edit/delete/filter/tax-flag/date input/custom-category management), and a settings tab with persistent options (language, date format, currency, sorting/suggestions, appearance, navigation animation style, system app lock, backup/import, and app-info panel).
+The app is built with Tauri for desktop and includes an Android app (Kotlin + Compose) with SAF-based sync folder selection, sync-file auto-load/auto-save, background sync refresh while app is open, extended bookings workflow (create/edit/delete/filter/tax-flag/date input/custom-category management), and persistent settings (language, date format, currency, sorting/suggestions, appearance, navigation animation style, system app lock, and backup/import). Desktop also includes a dedicated **Info** tab with app details and quick action links.
 
 * * *
 
@@ -72,6 +72,8 @@ The app is built with Tauri for desktop and includes an Android app (Kotlin + Co
 * 🔎 **Live filters**: Filter by month, year, type, category, account, and text with quick reset (desktop and Android parity).
 
 * 📦 **Backup & recovery**: Daily JSON backups + fallback/recovery behavior for storage errors.
+
+* ⚙️ **Desktop settings + info**: Persistent desktop options for language, date format, currency display, booking sort direction, start tab, default export format, keep-date-after-save, navigation animation style, category suggestion toggle, extended font-size presets, desktop app lock, and full backup export/import, plus a dedicated **Info** tab with matching app-style icons and quick links.
 
 * 🔄 **Folder-based sync**: Optional sync using `finanz-tracker-sync-latest.json` in a user-selected folder.
 
@@ -158,6 +160,9 @@ cd "Finanz-Tracker/apps/mobile"
 7. 📁 **Use report export** in `Reports`: choose year (report updates automatically on blur/Enter), export content (Year summary / Year comparison / Year bookings / Month bookings / Tax declaration bookings in year), and format (PDF / XLSX / CSV).
 
 8. 🔄 **Configure sync folder** in `Sync` for optional cross-device workflow.
+
+9. ⚙️ **Adjust desktop settings** in `Settings` (language/date/currency/sorting/start tab/export defaults/suggestions/font size/navigation/app lock/backup).
+10. ℹ️ **Use Info tab** for app details and quick actions (email, social links, Telegram bot, profile, support link).
 
 * * *
 

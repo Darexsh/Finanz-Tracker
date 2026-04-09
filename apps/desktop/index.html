@@ -14,10 +14,10 @@
       <header class="hero">
         <div>
           <h1>Finanz Tracker</h1>
-          <p>Ein Codebase für Desktop und Android</p>
+          <p id="heroSubtitle">Ein Codebase für Desktop und Android</p>
         </div>
         <div class="profile-box">
-          <label for="userSelect">Profil</label>
+          <label id="profileLabel" for="userSelect">Profil</label>
           <select id="userSelect"></select>
           <button id="addUserBtn" class="btn secondary">Neu</button>
           <button id="renameUserBtn" class="btn secondary">Umbenennen</button>
@@ -26,10 +26,12 @@
       </header>
 
       <nav class="tabs" role="tablist">
-        <button class="tab active" data-tab="dashboard">Dashboard</button>
-        <button class="tab" data-tab="bookings">Buchungen</button>
-        <button class="tab" data-tab="reports">Auswertung</button>
-        <button class="tab" data-tab="synchronisierung">Synchronisierung</button>
+        <button id="tabDashboard" class="tab active" data-tab="dashboard">Dashboard</button>
+        <button id="tabBookings" class="tab" data-tab="bookings">Buchungen</button>
+        <button id="tabReports" class="tab" data-tab="reports">Auswertung</button>
+        <button id="tabSync" class="tab" data-tab="synchronisierung">Synchronisierung</button>
+        <button id="tabSettings" class="tab" data-tab="settings">Einstellungen</button>
+        <button id="tabInfo" class="tab" data-tab="info">Info</button>
       </nav>
 
       <main>
@@ -38,9 +40,9 @@
           <div class="panel-grid">
             <section class="panel">
               <div class="panel-head">
-                <h3>Top Kategorien (Monat)</h3>
+                <h3 id="dashTopCategoriesTitle">Top Kategorien (Monat)</h3>
                 <label class="mini-field">
-                  Monat
+                  <span id="dashTopMonthLabel">Monat</span>
                   <select id="dashboardTopMonthSelect"></select>
                 </label>
               </div>
@@ -48,9 +50,9 @@
             </section>
             <section class="panel">
               <div class="panel-head">
-                <h3>Monatsverlauf (Einnahmen und Ausgaben)</h3>
+                <h3 id="dashMonthlyFlowTitle">Monatsverlauf (Einnahmen und Ausgaben)</h3>
                 <label class="mini-field">
-                  Jahr
+                  <span id="dashYearLabel">Jahr</span>
                   <select id="dashboardYearSelect"></select>
                 </label>
               </div>
@@ -59,18 +61,18 @@
                 <div id="monthlyChartTooltip" class="chart-tooltip hidden" aria-hidden="true"></div>
                 <div id="monthlyChartEmpty" class="chart-empty hidden" aria-live="polite"></div>
               </div>
-              <p class="chart-note">Grün = Einnahmen, Rot im Balken = Ausgaben. Hover oder Klick zeigt Details.</p>
+              <p id="dashChartNote" class="chart-note">Grün = Einnahmen, Rot im Balken = Ausgaben. Hover oder Klick zeigt Details.</p>
             </section>
           </div>
         </section>
 
         <section id="bookings" class="tab-panel">
           <section class="panel form-panel">
-            <h3>Neue Buchung</h3>
-            <p class="panel-help">Tipp: Für bestehende Einträge in der Tabelle doppelklicken, anpassen und einfach wieder speichern.</p>
+            <h3 id="bookingsNewTitle">Neue Buchung</h3>
+            <p id="bookingsHelpEdit" class="panel-help">Tipp: Für bestehende Einträge in der Tabelle doppelklicken, anpassen und einfach wieder speichern.</p>
             <form id="bookingForm" class="form-grid booking-form-grid" novalidate>
               <label class="col-4">
-                Datum (TT.MM.JJJJ)
+                <span id="monthInputLabel">Datum (TT.MM.JJJJ)</span>
                 <div class="date-input-row">
                   <input id="monthInput" name="month" placeholder="02.04.2026" required />
                   <button id="monthPickerBtn" class="btn secondary date-picker-btn" type="button" aria-label="Datum auswählen" title="Datum auswählen">📅</button>
@@ -78,42 +80,42 @@
                 </div>
               </label>
               <label class="col-4">
-                Beschreibung
+                <span id="descriptionInputLabel">Beschreibung</span>
                 <input id="descriptionInput" name="description" required />
               </label>
               <label class="col-4">
-                Kategorie
+                <span id="categoryInputLabel">Kategorie</span>
                 <select id="categoryInput" name="category"></select>
               </label>
               <label class="col-4">
-                Betrag (€)
+                <span id="amountInputLabel">Betrag (€)</span>
                 <input id="amountInput" name="amount" required />
               </label>
               <label class="col-4">
-                Typ
+                <span id="typeInputLabel">Typ</span>
                 <select id="typeInput" name="txType">
-                  <option>Ausgabe</option>
-                  <option>Einnahme</option>
+                  <option id="typeExpenseOption" value="Ausgabe">Ausgabe</option>
+                  <option id="typeIncomeOption" value="Einnahme">Einnahme</option>
                 </select>
               </label>
               <label class="col-4">
-                Konto
+                <span id="accountInputLabel">Konto</span>
                 <select id="accountInput" name="account"></select>
               </label>
               <label class="full-width">
-                Notiz
+                <span id="noteInputLabel">Notiz</span>
                 <input id="noteInput" name="note" />
               </label>
               <label class="col-7 tax-checkbox">
                 <input id="taxDeclarationInput" name="taxDeclaration" type="checkbox" />
-                <span>Buchung für Steuererklärung</span>
+                <span id="taxDeclarationLabel">Buchung für Steuererklärung</span>
               </label>
               <div class="col-5 actions form-actions">
-                <button class="btn primary" type="submit">Speichern</button>
-                <button class="btn secondary" type="reset">Leeren</button>
+                <button id="bookingSaveBtn" class="btn primary" type="submit">Speichern</button>
+                <button id="bookingResetBtn" class="btn secondary" type="reset">Leeren</button>
               </div>
               <div class="full-width category-tools category-tools-card category-tools-footer">
-                <span>Kategorien verwalten</span>
+                <span id="categoryToolsLabel">Kategorien verwalten</span>
                 <button id="addCategoryBtn" class="btn secondary category-tool-btn" type="button">Neu</button>
                 <button id="renameCategoryBtn" class="btn secondary category-tool-btn" type="button">Umbenennen</button>
                 <button id="deleteCategoryBtn" class="btn danger category-tool-btn category-tool-btn-danger" type="button">Löschen</button>
@@ -122,27 +124,27 @@
           </section>
 
           <section class="panel">
-            <h3>Filter</h3>
-            <p class="panel-help">Filter greifen sofort auf die Buchungstabelle. Mit "Reset" setzt du alle Filter wieder zurück.</p>
+            <h3 id="filterTitle">Filter</h3>
+            <p id="filterHelp" class="panel-help">Filter greifen sofort auf die Buchungstabelle. Mit "Reset" setzt du alle Filter wieder zurück.</p>
             <div class="filter-row">
               <select id="fMonth"></select>
               <select id="fYear"></select>
               <select id="fType">
-                <option value="Alle">Typ: Alle</option>
-                <option value="Ausgabe">Ausgabe</option>
-                <option value="Einnahme">Einnahme</option>
+                <option id="filterTypeAllOption" value="Alle">Typ: Alle</option>
+                <option id="filterTypeExpenseOption" value="Ausgabe">Ausgabe</option>
+                <option id="filterTypeIncomeOption" value="Einnahme">Einnahme</option>
               </select>
               <select id="fCategory"></select>
               <select id="fAccount"></select>
               <input id="fSearch" placeholder="Suche" />
-              <button class="btn secondary" id="resetFiltersBtn">Reset</button>
+              <button id="resetFiltersBtn" class="btn secondary">Reset</button>
             </div>
           </section>
 
           <section class="panel">
-            <h3>Buchungen</h3>
+            <h3 id="bookingsTableTitle">Buchungen</h3>
             <div class="bookings-toolbar">
-              <button class="btn danger" id="deleteSelectedBookingsBtn" type="button">Ausgewählte löschen</button>
+              <button id="deleteSelectedBookingsBtn" class="btn danger" type="button">Ausgewählte löschen</button>
               <span id="selectedBookingsInfo" class="selected-info">0 ausgewählt</span>
             </div>
             <div class="table-wrap">
@@ -150,14 +152,14 @@
                 <thead>
                   <tr>
                     <th class="check-col"><input id="selectAllBookings" type="checkbox" aria-label="Alle Buchungen auswählen" /></th>
-                    <th>Datum</th>
-                    <th>Beschreibung</th>
-                    <th>Kategorie</th>
-                    <th>Typ</th>
-                    <th>Betrag</th>
-                    <th>Konto</th>
-                    <th>Notiz</th>
-                    <th>Steuererklärung</th>
+                    <th id="bookingHeadDate">Datum</th>
+                    <th id="bookingHeadDescription">Beschreibung</th>
+                    <th id="bookingHeadCategory">Kategorie</th>
+                    <th id="bookingHeadType">Typ</th>
+                    <th id="bookingHeadAmount">Betrag</th>
+                    <th id="bookingHeadAccount">Konto</th>
+                    <th id="bookingHeadNote">Notiz</th>
+                    <th id="bookingHeadTax">Steuererklärung</th>
                   </tr>
                 </thead>
                 <tbody id="bookingsBody"></tbody>
@@ -167,24 +169,25 @@
         </section>
         <section id="reports" class="tab-panel">
           <section class="panel">
-            <h3>Jahresauswertung</h3>
+            <h3 id="reportsYearlyTitle">Jahresauswertung</h3>
             <div class="report-toolbar">
               <div class="report-toolbar-fields">
                 <label>
-                  Jahr
+                  <span id="reportYearLabel">Jahr</span>
                   <input id="reportYearInput" value="2026" />
                 </label>
                 <label>
-                  Export-Inhalt
+                  <span id="reportScopeLabel">Export-Inhalt</span>
                   <select id="reportExportScope">
-                    <option value="summary" selected>Jahresübersicht</option>
-                    <option value="year-comparison">Jahresvergleich (Jahr vs. Vorjahr)</option>
-                    <option value="year-bookings">Alle Buchungen im Jahr</option>
-                    <option value="month-bookings">Alle Buchungen im Monat</option>
+                    <option id="scopeSummaryOption" value="summary" selected>Jahresübersicht</option>
+                    <option id="scopeComparisonOption" value="year-comparison">Jahresvergleich (Jahr vs. Vorjahr)</option>
+                    <option id="scopeYearBookingsOption" value="year-bookings">Alle Buchungen im Jahr</option>
+                    <option id="scopeMonthBookingsOption" value="month-bookings">Alle Buchungen im Monat</option>
+                    <option id="scopeTaxBookingsOption" value="tax-year-bookings">Steuererklärung-Buchungen im Jahr</option>
                   </select>
                 </label>
                 <label>
-                  Monat
+                  <span id="reportMonthLabel">Monat</span>
                   <select id="reportExportMonth"></select>
                 </label>
               </div>
@@ -202,15 +205,15 @@
           <section class="cards" id="reportStatsCards"></section>
 
           <section class="panel">
-            <h3>Jahresvergleich</h3>
+            <h3 id="reportComparisonTitle">Jahresvergleich</h3>
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Kennzahl</th>
+                    <th id="reportHeadMetric">Kennzahl</th>
                     <th id="reportPrevYearHead">Vorjahr</th>
                     <th id="reportYearHead">Aktuelles Jahr</th>
-                    <th>Veränderung</th>
+                    <th id="reportHeadChange">Veränderung</th>
                   </tr>
                 </thead>
                 <tbody id="reportCompareBody"></tbody>
@@ -219,15 +222,15 @@
           </section>
 
           <section class="panel">
-            <h3>Monate</h3>
+            <h3 id="reportMonthsTitle">Monate</h3>
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Monat</th>
-                    <th>Einnahmen</th>
-                    <th>Ausgaben</th>
-                    <th>Saldo</th>
+                    <th id="reportHeadMonth">Monat</th>
+                    <th id="reportHeadIncome">Einnahmen</th>
+                    <th id="reportHeadExpense">Ausgaben</th>
+                    <th id="reportHeadBalance">Saldo</th>
                   </tr>
                 </thead>
                 <tbody id="reportBody"></tbody>
@@ -238,16 +241,16 @@
 
         <section id="synchronisierung" class="tab-panel">
           <section class="panel">
-            <h3>Synchronisierung</h3>
-            <p class="chart-note">Hier werden Ordner-Auswahl, Sync-Status und manuelle Sync-Aktionen zentral verwaltet.</p>
-            <p class="chart-note">Android-Hinweis: Auf dem Smartphone eine beliebige App für Ordner-Synchronisierung einrichten (z. B. FolderSync, Syncthing oder andere), denselben Cloud-/Netzwerk-Ordner mit einem lokalen Handy-Ordner koppeln und Two-way-Sync aktivieren. Google Drive ist nur eine mögliche Option, nicht verpflichtend.</p>
+            <h3 id="syncTitle">Synchronisierung</h3>
+            <p id="syncIntro" class="chart-note">Hier werden Ordner-Auswahl, Sync-Status und manuelle Sync-Aktionen zentral verwaltet.</p>
+            <p id="syncAndroidHint" class="chart-note">Android-Hinweis: Auf dem Smartphone eine beliebige App für Ordner-Synchronisierung einrichten (z. B. FolderSync, Syncthing oder andere), denselben Cloud-/Netzwerk-Ordner mit einem lokalen Handy-Ordner koppeln und Two-way-Sync aktivieren. Google Drive ist nur eine mögliche Option, nicht verpflichtend.</p>
           </section>
 
           <section class="panel">
-            <h3>Sync-Ordner</h3>
+            <h3 id="syncFolderTitle">Sync-Ordner</h3>
             <div class="cloud-grid">
               <label class="full-width">
-                Ordnerpfad
+                <span id="syncFolderPathLabel">Ordnerpfad</span>
                 <input id="syncFolderInput" placeholder="D:\\FinanzTracker\\Sync" />
               </label>
               <div class="full-width actions">
@@ -258,6 +261,154 @@
               <p id="cloudStatus" class="cloud-status">Sync: nicht konfiguriert</p>
               <p id="syncLastWrite" class="cloud-status">Letzte Sync-Sicherung: -</p>
               <p id="syncLastRestore" class="cloud-status">Letzte Wiederherstellung: -</p>
+            </div>
+          </section>
+        </section>
+
+        <section id="settings" class="tab-panel">
+          <section class="panel">
+            <h3 id="settingsTitle">Einstellungen</h3>
+            <p id="settingsIntro" class="settings-intro">Alle App-Einstellungen sind hier zentral gruppiert.</p>
+            <div class="settings-layout">
+              <section class="settings-card">
+                <h4 id="settingsGroupGeneral">Allgemein</h4>
+                <div class="settings-grid">
+                  <label class="settings-item">
+                    <span id="settingsLanguageLabel">Sprache</span>
+                    <select id="settingsLanguage">
+                      <option value="system">System</option>
+                      <option value="de">Deutsch</option>
+                      <option value="en">English</option>
+                    </select>
+                  </label>
+                  <label class="settings-item">
+                    <span id="settingsDateFormatLabel">Datumsformat</span>
+                    <select id="settingsDateFormat">
+                      <option value="DD.MM.YYYY">DD.MM.YYYY</option>
+                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                    </select>
+                  </label>
+                  <label class="settings-item">
+                    <span id="settingsCurrencyLabel">Währung</span>
+                    <select id="settingsCurrency">
+                      <option value="EUR">EUR (€)</option>
+                      <option value="USD">USD ($)</option>
+                    </select>
+                  </label>
+                  <label class="settings-item">
+                    <span id="settingsStartTabLabel">Start-Tab</span>
+                    <select id="settingsStartTab">
+                      <option value="dashboard">Dashboard</option>
+                      <option value="bookings">Buchungen</option>
+                      <option value="reports">Auswertung</option>
+                      <option value="synchronisierung">Synchronisierung</option>
+                      <option value="settings">Einstellungen</option>
+                      <option value="info">Info</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <section class="settings-card">
+                <h4 id="settingsGroupBehavior">Buchungsverhalten</h4>
+                <div class="settings-grid">
+                  <label class="settings-item">
+                    <span id="settingsSortLabel">Buchungssortierung</span>
+                    <select id="settingsSortDirection">
+                      <option value="desc">Neueste zuerst</option>
+                      <option value="asc">Älteste zuerst</option>
+                    </select>
+                  </label>
+                  <label class="settings-item">
+                    <span id="settingsDefaultExportFormatLabel">Standard Export-Format</span>
+                    <select id="settingsDefaultExportFormat">
+                      <option value="pdf">PDF</option>
+                      <option value="xlsx">XLSX</option>
+                      <option value="csv">CSV</option>
+                    </select>
+                  </label>
+                  <label class="settings-item">
+                    <span id="settingsCategorySuggestionsLabel">Kategorie-Vorschläge aktivieren</span>
+                    <select id="settingsCategorySuggestions">
+                      <option value="active">Aktiv</option>
+                      <option value="inactive">Inaktiv</option>
+                    </select>
+                  </label>
+                  <label class="settings-item">
+                    <span id="settingsKeepDateAfterSaveLabel">Datum nach Speichern beibehalten</span>
+                    <select id="settingsKeepDateAfterSave">
+                      <option value="active">Aktiv</option>
+                      <option value="inactive">Inaktiv</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <section class="settings-card">
+                <h4 id="settingsGroupAppearance">Darstellung</h4>
+                <div class="settings-grid settings-grid-compact">
+                  <label class="settings-item">
+                    <span id="settingsFontSizeLabel">Schriftgröße</span>
+                    <select id="settingsFontSize">
+                      <option value="normal">Normal</option>
+                      <option value="large">Groß</option>
+                      <option value="xlarge">Sehr groß</option>
+                      <option value="xxlarge">Extra groß</option>
+                    </select>
+                  </label>
+                  <label class="settings-item">
+                    <span id="settingsNavigationAnimationLabel">Navigationsanimation</span>
+                    <select id="settingsNavigationAnimationStyle">
+                      <option value="slide">Slide</option>
+                      <option value="fade">Fade</option>
+                      <option value="zoom">Zoom</option>
+                      <option value="pop">Pop</option>
+                      <option value="rotate">Rotate</option>
+                      <option value="none">None</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <section class="settings-card">
+                <h4 id="settingsGroupSecurity">Sicherheit</h4>
+                <div class="settings-grid settings-grid-compact">
+                  <label class="settings-inline settings-toggle">
+                    <input id="settingsAppLock" type="checkbox" />
+                    <span id="settingsAppLockLabel">App-Sperre aktivieren</span>
+                  </label>
+                </div>
+              </section>
+              <section class="settings-card">
+                <h4 id="settingsBackupTitle">Backup</h4>
+                <div class="actions">
+                  <button id="backupExportBtn" class="btn secondary" type="button">Backup exportieren</button>
+                  <button id="backupImportBtn" class="btn secondary" type="button">Backup importieren</button>
+                  <input id="backupImportInput" type="file" accept="application/json,.json" class="hidden" />
+                </div>
+                <p id="settingsBackupNote" class="chart-note">Exportiert bzw. importiert den kompletten App-Status (Profile, Buchungen, Kategorien, Einstellungen).</p>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <section id="info" class="tab-panel">
+          <section class="panel app-info-card">
+            <div class="app-info-icon-wrap">
+              <img class="app-info-icon" src="assets/app-icon.png" alt="Finanz Tracker Icon" />
+            </div>
+            <h3 id="infoTitle">App-Info</h3>
+            <p id="infoVersion">Version 1.0.0</p>
+            <p id="infoDescription">Finanz Tracker ist eine Finanz-App mit einer gemeinsamen Codebase für Desktop und Android. Sie unterstützt Profile, Buchungen, Auswertungen, Exporte und ordnerbasierte Synchronisierung.</p>
+            <p id="infoDeveloper">Entwickler: Darexsh by Daniel Sichler</p>
+            <h4 id="infoActionsTitle">Aktionen</h4>
+            <div class="actions app-info-actions-vertical">
+              <button id="infoEmailBtn" class="btn secondary app-info-action-btn" type="button"><img class="app-info-action-icon-img" src="assets/icons/gmail_icon.png" alt="" aria-hidden="true" /><span>E-Mail schreiben</span></button>
+              <button id="infoGithubBtn" class="btn secondary app-info-action-btn" type="button"><img class="app-info-action-icon-img" src="assets/icons/linktree_icon.png" alt="" aria-hidden="true" /><span>Soziale Medien öffnen</span></button>
+              <button id="infoTelegramBtn" class="btn secondary app-info-action-btn" type="button"><img class="app-info-action-icon-img" src="assets/icons/telegram_icon.png" alt="" aria-hidden="true" /><span>Telegram-Bot öffnen</span></button>
+              <button id="infoProfileBtn" class="btn secondary app-info-action-btn" type="button"><img class="app-info-action-icon-img" src="assets/icons/github_icon.png" alt="" aria-hidden="true" /><span>GitHub-Profil</span></button>
+              <button id="infoCoffeeBtn" class="btn secondary app-info-action-btn" type="button"><img class="app-info-action-icon-img" src="assets/icons/buy_me_coffee_icon.png" alt="" aria-hidden="true" /><span>Kaffee spendieren</span></button>
             </div>
           </section>
         </section>
@@ -278,6 +429,17 @@
     </div>
 
     <div id="toastContainer" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
+
+    <div id="appLockOverlay" class="app-lock-overlay hidden" aria-hidden="true">
+      <div class="app-lock-box">
+        <h3 id="appLockTitle">App gesperrt</h3>
+        <p id="appLockMessage">Zum Entsperren bitte PIN eingeben.</p>
+        <input id="appLockPinInput" type="password" inputmode="numeric" autocomplete="off" />
+        <div class="actions">
+          <button id="appLockUnlockBtn" class="btn primary" type="button">Entsperren</button>
+        </div>
+      </div>
+    </div>
 
     <script src="vendor/xlsx.full.min.js"></script>
     <script src="vendor/jspdf.umd.min.js"></script>

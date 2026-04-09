@@ -8,7 +8,6 @@ fun currencySymbol(pref: CurrencyPreference): String {
     return when (pref) {
         CurrencyPreference.EUR -> "€"
         CurrencyPreference.USD -> "$"
-        CurrencyPreference.GBP -> "£"
     }
 }
 
@@ -72,4 +71,3 @@ private fun parseMdySlash(value: String): Triple<Int, Int, Int>? {
     val year = parts[2].toIntOrNull() ?: return null
     return Triple(day, month, year)
 }
-

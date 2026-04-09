@@ -12,8 +12,10 @@ Desktop application built with Tauri.
 - Multi-user finance tracking
 - Bookings CRUD with inline validation
 - Dashboard, yearly reporting, year-over-year comparison
-- Export (PDF, XLSX, CSV) including yearly summaries, year comparison, yearly bookings, monthly bookings
+- Export (PDF, XLSX, CSV) including yearly summaries, year comparison, yearly bookings, monthly bookings, and tax-declaration bookings for the selected year
 - Folder-based sync workflow (no OAuth)
+- Settings tab with persistent desktop options (language, date format, currency, booking sort direction, start tab, default export format, keep-date-after-save, navigation animation style, category suggestions, extended font-size levels, app lock, backup export/import)
+- Dedicated Info tab with app details, app icon, app-style action icons, and quick links (opened in the external browser)
 
 ## Performance Notes
 - Cached user-bookings and report aggregates
@@ -25,6 +27,12 @@ Desktop application built with Tauri.
 - `npm install`
 - `npm run prepare:dist`
 - `npm run tauri:dev`
+- `npm run tauri:build`
+
+## App Icon Update
+- Place a square source PNG in `src-tauri/` and run:
+- `npx @tauri-apps/cli icon ./your-square-icon.png`
+- Rebuild the desktop app after icon generation.
 
 ## What Can Be Added Next
 - Additional profiling/benchmark tooling

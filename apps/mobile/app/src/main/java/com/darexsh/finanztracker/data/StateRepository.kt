@@ -25,7 +25,7 @@ import java.io.File
 
 class StateRepository(private val context: Context) {
     private val file = File(context.filesDir, "state.json")
-    private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
+    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true; prettyPrint = true }
     private val syncFileName = SyncContract.SYNC_FILE_NAME
 
     fun loadState(): TrackerState {
