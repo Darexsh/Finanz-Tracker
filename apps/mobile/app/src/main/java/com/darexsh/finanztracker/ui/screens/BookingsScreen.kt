@@ -131,6 +131,7 @@ fun BookingsScreen(
     var editingBookingId by remember { mutableStateOf<String?>(null) }
     var categoryManuallyOverridden by remember { mutableStateOf(false) }
     var lastAutoCategory by remember { mutableStateOf<String?>(null) }
+    val currentYear = remember { SimpleDateFormat("yyyy", Locale.GERMANY).format(Date()) }
 
     var filterSearch by remember { mutableStateOf("") }
     var filterMonth by remember { mutableStateOf("") }
@@ -158,7 +159,6 @@ fun BookingsScreen(
     val monthFilterOptions = remember {
         (1..12).map { it.toString().padStart(2, '0') }
     }
-    val currentYear = remember { SimpleDateFormat("yyyy", Locale.GERMANY).format(Date()) }
 
     val activeBookings = remember(state.bookings, state.activeUserId, sortNewestFirst) {
         state.bookings
