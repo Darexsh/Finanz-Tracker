@@ -134,7 +134,7 @@ fun BookingsScreen(
 
     var filterSearch by remember { mutableStateOf("") }
     var filterMonth by remember { mutableStateOf("") }
-    var filterYear by remember { mutableStateOf("") }
+    var filterYear by remember { mutableStateOf(currentYear.toString()) }
     var filterCategory by remember { mutableStateOf("") }
     var filterAccount by remember { mutableStateOf("") }
     var filterType by remember { mutableStateOf(TypeFilter.ALL) }
@@ -764,7 +764,7 @@ fun BookingsScreen(
                         onClick = {
                             filterSearch = ""
                             filterMonth = ""
-                            filterYear = ""
+                            filterYear = currentYear.toString()
                             filterCategory = ""
                             filterAccount = ""
                             filterType = TypeFilter.ALL

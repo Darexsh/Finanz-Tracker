@@ -28,6 +28,7 @@ import { MONTH_NAMES, MONTH_NAMES_EN, I18N } from "./modules/i18n.js";
 import {
   CATEGORIES,
   ACCOUNTS,
+  KEYWORD_MAP,
   sanitizeCustomCategories,
   allCategories,
   normalizeCategory,
@@ -819,6 +820,11 @@ function initSelectOptions() {
 
   fillSelect(el.fMonth, [t("monthAll"), ...Array.from({ length: 12 }, (_, i) => `${String(i + 1).padStart(2, "0")}`)], true);
   fillSelect(el.fYear, [t("yearAll"), String(new Date().getFullYear())], true);
+  el.fMonth.value = "Alle";
+  el.fYear.value = String(new Date().getFullYear());
+  el.fType.value = "Alle";
+  el.fCategory.value = "Alle";
+  el.fAccount.value = "Alle";
   initReportExportMonthOptions();
   if (el.reportExportScope) el.reportExportScope.value = "summary";
   updateReportExportControls();
@@ -908,7 +914,7 @@ function refreshAccountOptions(keepSelection = true) {
 
 function resetFilters() {
   el.fMonth.value = "Alle";
-  el.fYear.value = "Alle";
+  el.fYear.value = String(new Date().getFullYear());
   el.fType.value = "Alle";
   el.fCategory.value = "Alle";
   el.fAccount.value = "Alle";
