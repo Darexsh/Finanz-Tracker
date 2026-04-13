@@ -2043,9 +2043,10 @@ function syncDashboardTopMonthSelect() {
 
 function renderDashboard() {
   const now = new Date();
-  const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
   const entries = userBookings();
+  const selectedYear = syncDashboardYearSelect(entries);
+  const selectedTopMonth = syncDashboardTopMonthSelect();
 
   let totalIncome = 0;
   let totalExpense = 0;
@@ -2058,14 +2059,14 @@ function renderDashboard() {
 
     if (entry.txType === "Einnahme") {
       totalIncome += amount;
-      if (parts && parts.yyyy === currentYear && parts.mm === currentMonth) {
+      if (parts && parts.yyyy === selectedYear && parts.mm === currentMonth) {
         monthIncome += amount;
       }
       return;
     }
 
     totalExpense += amount;
-    if (parts && parts.yyyy === currentYear && parts.mm === currentMonth) {
+    if (parts && parts.yyyy === selectedYear && parts.mm === currentMonth) {
       monthExpense += amount;
     }
   });
@@ -2078,9 +2079,6 @@ function renderDashboard() {
   ];
 
   el.statsCards.innerHTML = stats.map(([k, v]) => `<article class="card"><p>${k}</p><h4>${v}</h4></article>`).join("");
-
-  const selectedYear = syncDashboardYearSelect(entries);
-  const selectedTopMonth = syncDashboardTopMonthSelect();
 
   const expenseByCategory = new Map();
   entries.forEach(entry => {
