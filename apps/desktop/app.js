@@ -2321,21 +2321,20 @@ function renderMonthlyCashflowChart(entries, year) {
     const incomeH = income > 0 ? Math.max(2, (income / maxScale) * maxBarH) : 0;
     const yIncome = baseY - incomeH;
 
-    const expenseHRaw = expense > 0 ? Math.max(2, (expense / maxScale) * maxBarH) : 0;
-    const expenseOverlayH = incomeH > 0 ? Math.min(expenseHRaw, incomeH) : expenseHRaw;
+    const expenseH = expense > 0 ? Math.max(2, (expense / maxScale) * maxBarH) : 0;
 
     if (incomeH > 0) {
       ctx.fillStyle = "#22c55e";
       ctx.fillRect(x, yIncome, barW, incomeH);
     }
 
-    if (expenseOverlayH > 0) {
-      const yExpense = baseY - expenseOverlayH;
+    if (expenseH > 0) {
+      const yExpense = baseY - expenseH;
       ctx.fillStyle = "#ef4444";
-      ctx.fillRect(x, yExpense, barW, expenseOverlayH);
+      ctx.fillRect(x, yExpense, barW, expenseH);
     }
 
-    const visibleBarH = Math.max(incomeH, expenseOverlayH);
+    const visibleBarH = Math.max(incomeH, expenseH);
     const barTop = visibleBarH > 0 ? baseY - visibleBarH : baseY - 2;
 
     const activeIndex = monthlyChartState.pinnedIndex !== null ? monthlyChartState.pinnedIndex : monthlyChartState.hoverIndex;

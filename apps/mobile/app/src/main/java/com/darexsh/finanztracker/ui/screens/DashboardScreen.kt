@@ -55,7 +55,6 @@ import com.darexsh.finanztracker.model.TxType
 import com.darexsh.finanztracker.ui.FinanceLabelLocalizer
 import com.darexsh.finanztracker.ui.formatCurrencyValue
 import kotlin.math.max
-import kotlin.math.min
 import java.text.DateFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -82,7 +81,7 @@ fun DashboardScreen(
     var selectedTrendYear by remember { mutableStateOf(currentYearInt) }
     val monthBookings = activeBookings.filter {
         val parts = it.date.split(".")
-        parts.size >= 3 && parts[1] == currentMonthToken && parts[2] == currentYearToken
+        parts.size >= 3 && parts[1] == currentMonthToken && parts[2] == selectedTrendYear.toString()
     }
     val monthlyIncome = monthBookings.filter { it.txType == TxType.INCOME }.sumOf { it.amount }
     val monthlyExpense = monthBookings.filter { it.txType == TxType.EXPENSE }.sumOf { it.amount }
@@ -92,9 +91,9 @@ fun DashboardScreen(
     val topCategories = activeBookings
         .filter {
             val parts = it.date.split(".")
-            parts.size >= 3 &&
+                parts.size >= 3 &&
                 parts[1] == selectedTopMonth.toString().padStart(2, '0') &&
-                parts[2] == currentYearToken
+                parts[2] == selectedTrendYear.toString()
         }
         .filter { it.txType == TxType.EXPENSE }
         .groupBy { it.category.ifBlank { stringResource(R.string.default_category) } }
@@ -196,7 +195,7 @@ fun DashboardScreen(
                             stringResource(
                                 R.string.dashboard_top_categories_empty_for_month,
                                 selectedTopMonthLabel,
-                                currentYearToken
+                                selectedTrendYear.toString()
                             ),
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -485,7 +484,6 @@ private fun MonthlyCashflowChart(
                 } else {
                     0f
                 }
-                val expenseOverlayH = if (incomeH > 0f) min(expenseRaw, incomeH) else expenseRaw
 
                 if (incomeH > 0f) {
                     drawRect(
@@ -494,16 +492,16 @@ private fun MonthlyCashflowChart(
                         size = androidx.compose.ui.geometry.Size(barW, incomeH)
                     )
                 }
-                if (expenseOverlayH > 0f) {
+                if (expenseRaw > 0f) {
                     drawRect(
                         color = Color(0xFFEF4444),
-                        topLeft = Offset(x, baseY - expenseOverlayH),
-                        size = androidx.compose.ui.geometry.Size(barW, expenseOverlayH)
+                        topLeft = Offset(x, baseY - expenseRaw),
+                        size = androidx.compose.ui.geometry.Size(barW, expenseRaw)
                     )
                 }
 
                 if (selectedIndex == index) {
-                    val visibleH = max(incomeH, expenseOverlayH).coerceAtLeast(minBarPx)
+                    val visibleH = max(incomeH, expenseRaw).coerceAtLeast(minBarPx)
                     val top = baseY - visibleH
                     drawRect(
                         color = Color(0xFF1E293B),
@@ -557,8 +555,7 @@ private fun MonthlyCashflowChart(
             } else {
                 0f
             }
-            val expenseOverlayH = if (incomeH > 0f) min(expenseRaw, incomeH) else expenseRaw
-            val visibleH = max(incomeH, expenseOverlayH).coerceAtLeast(minBarPx)
+            val visibleH = max(incomeH, expenseRaw).coerceAtLeast(minBarPx)
             val barTop = baseY - visibleH
 
             val popupWidthPx = with(density) { 214.dp.toPx() }
