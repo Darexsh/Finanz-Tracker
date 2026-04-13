@@ -81,8 +81,8 @@ fun DashboardScreen(
     var selectedTrendYear by remember { mutableStateOf(currentYearInt) }
     val selectedTopMonthToken = selectedTopMonth.toString().padStart(2, '0')
     val monthBookings = activeBookings.filter {
-        val parts = it.date.split(".")
-        parts.size >= 3 && parts[1] == selectedTopMonthToken && parts[2] == selectedTrendYear.toString()
+        val parts = parseDashboardDateParts(it.date) ?: return@filter false
+        parts.month == selectedTopMonth && parts.year == selectedTrendYear
     }
     val monthlyIncome = monthBookings.filter { it.txType == TxType.INCOME }.sumOf { it.amount }
     val monthlyExpense = monthBookings.filter { it.txType == TxType.EXPENSE }.sumOf { it.amount }
@@ -91,10 +91,8 @@ fun DashboardScreen(
     val monthLabels = DateFormatSymbols.getInstance(Locale.getDefault()).months.take(12)
     val topCategories = activeBookings
         .filter {
-            val parts = it.date.split(".")
-            parts.size >= 3 &&
-                parts[1] == selectedTopMonthToken &&
-                parts[2] == selectedTrendYear.toString()
+            val parts = parseDashboardDateParts(it.date) ?: return@filter false
+            parts.month == selectedTopMonth && parts.year == selectedTrendYear
         }
         .filter { it.txType == TxType.EXPENSE }
         .groupBy { it.category.ifBlank { stringResource(R.string.default_category) } }
@@ -107,7 +105,7 @@ fun DashboardScreen(
 
     val trendYearOptions = remember(activeBookings, currentYearInt) {
         val years = activeBookings.mapNotNull { booking ->
-            booking.date.split(".").getOrNull(2)?.toIntOrNull()
+            parseDashboardDateParts(booking.date)?.year
         }.toMutableSet()
         years.add(currentYearInt)
         years.toList().sortedDescending()
@@ -116,13 +114,12 @@ fun DashboardScreen(
         selectedTrendYear = trendYearOptions.firstOrNull() ?: currentYearInt
     }
     val monthTrend = (1..12).map { month ->
-        val token = month.toString().padStart(2, '0')
         val rows = activeBookings.filter {
-            val parts = it.date.split(".")
-            parts.size >= 3 && parts[1] == token && parts[2] == selectedTrendYear.toString()
+            val parts = parseDashboardDateParts(it.date) ?: return@filter false
+            parts.month == month && parts.year == selectedTrendYear
         }
         MonthTrendRow(
-            month = monthLabels.getOrNull(month - 1).takeUnless { it.isNullOrBlank() } ?: token,
+            month = monthLabels.getOrNull(month - 1).takeUnless { it.isNullOrBlank() } ?: month.toString().padStart(2, '0'),
             income = rows.filter { it.txType == TxType.INCOME }.sumOf { it.amount },
             expense = rows.filter { it.txType == TxType.EXPENSE }.sumOf { it.amount }
         )
@@ -263,6 +260,30 @@ fun DashboardScreen(
             }
         }
     }
+}
+
+private data class DashboardDateParts(val day: Int, val month: Int, val year: Int)
+
+private fun parseDashboardDateParts(raw: String): DashboardDateParts? {
+    val trimmed = raw.trim()
+    if (trimmed.isEmpty()) return null
+    val parts = trimmed.split('.', '/', '-').map { it.trim() }
+    if (parts.size != 3) return null
+
+    val a = parts[0].toIntOrNull() ?: return null
+    val b = parts[1].toIntOrNull() ?: return null
+    val c = parts[2].toIntOrNull() ?: return null
+
+    val parsed = if (parts[0].length == 4) {
+        DashboardDateParts(day = c, month = b, year = a) // yyyy-MM-dd
+    } else {
+        DashboardDateParts(day = a, month = b, year = c) // dd.MM.yyyy or dd/MM/yyyy
+    }
+
+    if (parsed.month !in 1..12) return null
+    if (parsed.day !in 1..31) return null
+    if (parsed.year !in 1900..2100) return null
+    return parsed
 }
 
 @Composable
