@@ -79,9 +79,10 @@ fun DashboardScreen(
     val currentYearInt = currentYearToken.toIntOrNull() ?: 2026
     var selectedTopMonth by remember { mutableStateOf(currentMonthToken.toIntOrNull() ?: 1) }
     var selectedTrendYear by remember { mutableStateOf(currentYearInt) }
+    val selectedTopMonthToken = selectedTopMonth.toString().padStart(2, '0')
     val monthBookings = activeBookings.filter {
         val parts = it.date.split(".")
-        parts.size >= 3 && parts[1] == currentMonthToken && parts[2] == selectedTrendYear.toString()
+        parts.size >= 3 && parts[1] == selectedTopMonthToken && parts[2] == selectedTrendYear.toString()
     }
     val monthlyIncome = monthBookings.filter { it.txType == TxType.INCOME }.sumOf { it.amount }
     val monthlyExpense = monthBookings.filter { it.txType == TxType.EXPENSE }.sumOf { it.amount }
@@ -91,8 +92,8 @@ fun DashboardScreen(
     val topCategories = activeBookings
         .filter {
             val parts = it.date.split(".")
-                parts.size >= 3 &&
-                parts[1] == selectedTopMonth.toString().padStart(2, '0') &&
+            parts.size >= 3 &&
+                parts[1] == selectedTopMonthToken &&
                 parts[2] == selectedTrendYear.toString()
         }
         .filter { it.txType == TxType.EXPENSE }

@@ -2043,7 +2043,6 @@ function syncDashboardTopMonthSelect() {
 
 function renderDashboard() {
   const now = new Date();
-  const currentMonth = now.getMonth() + 1;
   const entries = userBookings();
   const selectedYear = syncDashboardYearSelect(entries);
   const selectedTopMonth = syncDashboardTopMonthSelect();
@@ -2059,14 +2058,14 @@ function renderDashboard() {
 
     if (entry.txType === "Einnahme") {
       totalIncome += amount;
-      if (parts && parts.yyyy === selectedYear && parts.mm === currentMonth) {
+      if (parts && parts.yyyy === selectedYear && parts.mm === selectedTopMonth) {
         monthIncome += amount;
       }
       return;
     }
 
     totalExpense += amount;
-    if (parts && parts.yyyy === selectedYear && parts.mm === currentMonth) {
+    if (parts && parts.yyyy === selectedYear && parts.mm === selectedTopMonth) {
       monthExpense += amount;
     }
   });
