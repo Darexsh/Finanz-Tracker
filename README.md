@@ -86,7 +86,7 @@ The app is built with Tauri for desktop and includes an Android app (Kotlin + Co
 
 Download the prebuilt app from the release page and run it directly:
 
-* Desktop: use the `.exe` Application or the `.msi`-Installer to install it on your PC
+* Desktop: use the portable `.exe` or the NSIS `.exe` installer
 * Android: install the `.apk` file
 
 ### Desktop (Tauri)
@@ -125,6 +125,12 @@ Alternative:
 ```bash
 npx tauri dev
 ```
+
+Build note:
+- `npm run tauri:build` currently produces a NSIS installer (`.exe`) and a portable `.exe`.
+- Alias outputs are copied to:
+  - `apps/desktop/src-tauri/target/release/FinanzTracker_portable.exe`
+  - `apps/desktop/src-tauri/target/release/bundle/nsis/FinanzTracker_installer.exe`
 
 ### Android (Kotlin + Compose)
 

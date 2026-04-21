@@ -28,6 +28,7 @@ Desktop application built with Tauri.
 - `npm run prepare:dist`
 - `npm run tauri:dev`
 - `npm run tauri:build`
+- Build artifact aliases after `tauri:build`: `src-tauri/target/release/FinanzTracker_portable.exe` and `src-tauri/target/release/bundle/nsis/FinanzTracker_installer.exe` (via `scripts/rename-artifacts.mjs`).
 
 ## App Icon Update
 - Place a square source PNG in `src-tauri/` and run:
