@@ -16,15 +16,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,9 +44,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import com.darexsh.finanztracker.R
+import com.darexsh.finanztracker.domain.FinanceCatalog
 import com.darexsh.finanztracker.model.CurrencyPreference
 import com.darexsh.finanztracker.model.TrackerState
 import com.darexsh.finanztracker.model.TxType
+import com.darexsh.finanztracker.ui.components.SelectionBottomSheetButton
 import com.darexsh.finanztracker.ui.FinanceLabelLocalizer
 import com.darexsh.finanztracker.ui.formatCurrencyValue
 import kotlin.math.max
@@ -69,8 +66,27 @@ fun DashboardScreen(
     currency: CurrencyPreference = CurrencyPreference.EUR
 ) {
     val activeBookings = state.bookings.filter { it.userId == state.activeUserId }
-    val totalIncome = activeBookings.filter { it.txType == TxType.INCOME }.sumOf { it.amount }
-    val totalExpense = activeBookings.filter { it.txType == TxType.EXPENSE }.sumOf { it.amount }
+    val accountOptions = remember(activeBookings) {
+        (FinanceCatalog.accounts + activeBookings.map { it.account })
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .distinctBy { it.lowercase(Locale.ROOT) }
+    }
+    var selectedAccount by remember(state.activeUserId) { mutableStateOf<String?>(null) }
+    if (selectedAccount != null && accountOptions.none { it.equals(selectedAccount, ignoreCase = true) }) {
+        selectedAccount = null
+    }
+
+    val dashboardBookings = if (selectedAccount == null) {
+        activeBookings
+    } else {
+        activeBookings.filter { it.account.equals(selectedAccount, ignoreCase = true) }
+    }
+    val selectedAccountLabel = selectedAccount?.let { FinanceLabelLocalizer.localizeAccount(it, Locale.getDefault()) }
+        ?: stringResource(R.string.filter_all_accounts)
+
+    val totalIncome = dashboardBookings.filter { it.txType == TxType.INCOME }.sumOf { it.amount }
+    val totalExpense = dashboardBookings.filter { it.txType == TxType.EXPENSE }.sumOf { it.amount }
     val balance = totalIncome - totalExpense
 
     val now = Date()
@@ -80,7 +96,7 @@ fun DashboardScreen(
     var selectedTopMonth by remember { mutableStateOf(currentMonthToken.toIntOrNull() ?: 1) }
     var selectedTrendYear by remember { mutableStateOf(currentYearInt) }
     val selectedTopMonthToken = selectedTopMonth.toString().padStart(2, '0')
-    val monthBookings = activeBookings.filter {
+    val monthBookings = dashboardBookings.filter {
         val parts = parseDashboardDateParts(it.date) ?: return@filter false
         parts.month == selectedTopMonth && parts.year == selectedTrendYear
     }
@@ -89,7 +105,7 @@ fun DashboardScreen(
     val monthlySurplus = monthlyIncome - monthlyExpense
 
     val monthLabels = DateFormatSymbols.getInstance(Locale.getDefault()).months.take(12)
-    val topCategories = activeBookings
+    val topCategories = dashboardBookings
         .filter {
             val parts = parseDashboardDateParts(it.date) ?: return@filter false
             parts.month == selectedTopMonth && parts.year == selectedTrendYear
@@ -103,8 +119,8 @@ fun DashboardScreen(
         ?.takeIf { it.isNotBlank() }
         ?: selectedTopMonth.toString().padStart(2, '0')
 
-    val trendYearOptions = remember(activeBookings, currentYearInt) {
-        val years = activeBookings.mapNotNull { booking ->
+    val trendYearOptions = remember(dashboardBookings, currentYearInt) {
+        val years = dashboardBookings.mapNotNull { booking ->
             parseDashboardDateParts(booking.date)?.year
         }.toMutableSet()
         years.add(currentYearInt)
@@ -114,7 +130,7 @@ fun DashboardScreen(
         selectedTrendYear = trendYearOptions.firstOrNull() ?: currentYearInt
     }
     val monthTrend = (1..12).map { month ->
-        val rows = activeBookings.filter {
+        val rows = dashboardBookings.filter {
             val parts = parseDashboardDateParts(it.date) ?: return@filter false
             parts.month == month && parts.year == selectedTrendYear
         }
@@ -132,7 +148,20 @@ fun DashboardScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text(stringResource(R.string.screen_overview), style = MaterialTheme.typography.headlineSmall)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.screen_overview), style = MaterialTheme.typography.headlineSmall)
+                SelectionBottomSheetButton(
+                    title = stringResource(R.string.filter_account),
+                    selectedLabel = "${stringResource(R.string.label_account)}: $selectedAccountLabel",
+                    options = listOf(stringResource(R.string.filter_all_accounts) to null) +
+                        accountOptions.map { FinanceLabelLocalizer.localizeAccount(it, Locale.getDefault()) to it },
+                    onSelected = { selectedAccount = it },
+                    modifier = Modifier.height(36.dp),
+                    shape = RoundedCornerShape(999.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                    isSelected = { it == selectedAccount }
+                )
+            }
         }
 
         item {
@@ -182,10 +211,18 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(stringResource(R.string.dashboard_top_categories_title), style = MaterialTheme.typography.titleMedium)
-                        DashboardMonthSelect(
-                            selectedMonth = selectedTopMonth,
-                            monthLabels = monthLabels,
-                            onSelected = { selectedTopMonth = it }
+                        SelectionBottomSheetButton(
+                            title = stringResource(R.string.dashboard_top_categories_month_label),
+                            selectedLabel = monthLabels.getOrNull(selectedTopMonth - 1)
+                                ?.takeIf { it.isNotBlank() }
+                                ?: selectedTopMonth.toString().padStart(2, '0'),
+                            options = (1..12).map { month ->
+                                ((monthLabels.getOrNull(month - 1)?.takeIf { it.isNotBlank() }
+                                    ?: month.toString().padStart(2, '0')) to month)
+                            },
+                            onSelected = { selectedTopMonth = it },
+                            modifier = Modifier.width(94.dp),
+                            isSelected = { it == selectedTopMonth }
                         )
                     }
                     if (topCategories.isEmpty()) {
@@ -224,10 +261,13 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(stringResource(R.string.dashboard_month_trend_title, selectedTrendYear.toString()), style = MaterialTheme.typography.titleMedium)
-                        DashboardYearSelect(
-                            selectedYear = selectedTrendYear,
-                            yearOptions = trendYearOptions,
-                            onSelected = { selectedTrendYear = it }
+                        SelectionBottomSheetButton(
+                            title = stringResource(R.string.label_report_year),
+                            selectedLabel = selectedTrendYear.toString(),
+                            options = trendYearOptions.map { it.toString() to it },
+                            onSelected = { selectedTrendYear = it },
+                            modifier = Modifier.width(88.dp),
+                            isSelected = { it == selectedTrendYear }
                         )
                     }
                     Text(
@@ -260,6 +300,7 @@ fun DashboardScreen(
             }
         }
     }
+
 }
 
 private data class DashboardDateParts(val day: Int, val month: Int, val year: Int)
@@ -286,97 +327,6 @@ private fun parseDashboardDateParts(raw: String): DashboardDateParts? {
     return parsed
 }
 
-@Composable
-private fun DashboardYearSelect(
-    selectedYear: Int,
-    yearOptions: List<Int>,
-    onSelected: (Int) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Box {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier
-                .width(88.dp)
-                .height(34.dp),
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-        ) {
-            Text(
-                text = selectedYear.toString(),
-                style = MaterialTheme.typography.bodySmall
-            )
-            Icon(
-                imageVector = Icons.Outlined.KeyboardArrowDown,
-                contentDescription = stringResource(R.string.label_report_year)
-            )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            containerColor = MaterialTheme.colorScheme.surface
-        ) {
-            yearOptions.forEach { year ->
-                DropdownMenuItem(
-                    text = { Text(year.toString()) },
-                    onClick = {
-                        onSelected(year)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DashboardMonthSelect(
-    selectedMonth: Int,
-    monthLabels: List<String>,
-    onSelected: (Int) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val selectedLabel = monthLabels.getOrNull(selectedMonth - 1)
-        ?.takeIf { it.isNotBlank() }
-        ?: selectedMonth.toString().padStart(2, '0')
-
-    Box {
-        OutlinedButton(
-            onClick = { expanded = true },
-            modifier = Modifier
-                .width(94.dp)
-                .height(34.dp),
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-        ) {
-            Text(
-                text = selectedLabel,
-                style = MaterialTheme.typography.bodySmall
-            )
-            Icon(
-                imageVector = Icons.Outlined.KeyboardArrowDown,
-                contentDescription = stringResource(R.string.dashboard_top_categories_month_label)
-            )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            containerColor = MaterialTheme.colorScheme.surface
-        ) {
-            (1..12).forEach { month ->
-                val label = monthLabels.getOrNull(month - 1)
-                    ?.takeIf { it.isNotBlank() }
-                    ?: month.toString().padStart(2, '0')
-                DropdownMenuItem(
-                    text = { Text(label) },
-                    onClick = {
-                        onSelected(month)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun MonthlyCashflowChart(

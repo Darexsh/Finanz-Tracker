@@ -85,6 +85,7 @@ const el = {
   monthlyChartTooltip: document.getElementById("monthlyChartTooltip"),
   monthlyChartEmpty: document.getElementById("monthlyChartEmpty"),
   dashboardYearSelect: document.getElementById("dashboardYearSelect"),
+  dashboardAccountSelect: document.getElementById("dashboardAccountSelect"),
   dashboardTopMonthSelect: document.getElementById("dashboardTopMonthSelect"),
 
   bookingForm: document.getElementById("bookingForm"),
@@ -289,6 +290,7 @@ function applyLanguageToUi() {
     ["tabSettings", "settings"],
     ["tabInfo", "about"],
     ["dashTopCategoriesTitle", "topCategoriesMonthTitle"],
+    ["dashAccountLabel", "account"],
     ["dashTopMonthLabel", "month"],
     ["dashMonthlyFlowTitle", "monthlyFlowTitle"],
     ["dashYearLabel", "year"],
@@ -447,6 +449,13 @@ function applyLanguageToUi() {
   }
   if (el.fAccount?.options?.length) {
     el.fAccount.options[0].textContent = t("accountAll");
+  }
+  if (el.dashboardAccountSelect?.options?.length) {
+    el.dashboardAccountSelect.options[0].textContent = t("all");
+    for (let i = 1; i < el.dashboardAccountSelect.options.length; i += 1) {
+      const option = el.dashboardAccountSelect.options[i];
+      option.textContent = accountLabelForUi(option.value);
+    }
   }
 
   if (el.reportExportMonth) {
@@ -887,6 +896,7 @@ function refreshCategoryOptions(keepSelection = true) {
 function refreshAccountOptions(keepSelection = true) {
   const previousInput = keepSelection ? el.accountInput.value : "Girokonto";
   const previousFilter = keepSelection ? el.fAccount.value : "Alle";
+  const previousDashboard = keepSelection ? el.dashboardAccountSelect?.value : "Alle";
 
   el.accountInput.innerHTML = "";
   ACCOUNTS.forEach(acc => {
@@ -910,6 +920,24 @@ function refreshAccountOptions(keepSelection = true) {
 
   el.accountInput.value = ACCOUNTS.includes(previousInput) ? previousInput : "Girokonto";
   el.fAccount.value = previousFilter === "Alle" ? "Alle" : (ACCOUNTS.includes(previousFilter) ? previousFilter : "Alle");
+
+  if (el.dashboardAccountSelect) {
+    el.dashboardAccountSelect.innerHTML = "";
+    const allOption = document.createElement("option");
+    allOption.value = "Alle";
+    allOption.textContent = t("all");
+    el.dashboardAccountSelect.appendChild(allOption);
+    ACCOUNTS.forEach(acc => {
+      const option = document.createElement("option");
+      option.value = acc;
+      option.textContent = accountLabelForUi(acc);
+      el.dashboardAccountSelect.appendChild(option);
+    });
+    const selected = previousDashboard === "Alle"
+      ? "Alle"
+      : (ACCOUNTS.includes(previousDashboard) ? previousDashboard : "Alle");
+    el.dashboardAccountSelect.value = selected;
+  }
 }
 
 function resetFilters() {
@@ -1293,6 +1321,11 @@ function bindEvents() {
 
   if (el.dashboardYearSelect) {
     el.dashboardYearSelect.addEventListener("change", () => {
+      renderDashboard();
+    });
+  }
+  if (el.dashboardAccountSelect) {
+    el.dashboardAccountSelect.addEventListener("change", () => {
       renderDashboard();
     });
   }
@@ -2041,9 +2074,42 @@ function syncDashboardTopMonthSelect() {
   return selected;
 }
 
+function syncDashboardAccountSelect() {
+  const select = el.dashboardAccountSelect;
+  if (!select) return "Alle";
+
+  const previous = select.value || "Alle";
+  select.innerHTML = "";
+
+  const allOption = document.createElement("option");
+  allOption.value = "Alle";
+  allOption.textContent = t("all");
+  select.appendChild(allOption);
+
+  ACCOUNTS.forEach(acc => {
+    const option = document.createElement("option");
+    option.value = acc;
+    option.textContent = accountLabelForUi(acc);
+    select.appendChild(option);
+  });
+
+  const selected = previous === "Alle"
+    ? "Alle"
+    : (ACCOUNTS.includes(previous) ? previous : "Alle");
+  select.value = selected;
+  return selected;
+}
+
+function dashboardEntriesForSelectedAccount() {
+  const all = userBookings();
+  const selectedAccount = el.dashboardAccountSelect?.value || "Alle";
+  if (selectedAccount === "Alle") return all;
+  return all.filter(entry => entry.account === selectedAccount);
+}
+
 function renderDashboard() {
-  const now = new Date();
-  const entries = userBookings();
+  syncDashboardAccountSelect();
+  const entries = dashboardEntriesForSelectedAccount();
   const selectedYear = syncDashboardYearSelect(entries);
   const selectedTopMonth = syncDashboardTopMonthSelect();
 
@@ -2134,14 +2200,14 @@ function setupMonthlyChartInteractions() {
     } else {
       hideMonthlyChartTooltip();
     }
-    renderMonthlyCashflowChart(userBookings(), monthlyChartState.year || new Date().getFullYear());
+    renderMonthlyCashflowChart(dashboardEntriesForSelectedAccount(), monthlyChartState.year || new Date().getFullYear());
   });
 
   canvas.addEventListener("mouseleave", () => {
     if (monthlyChartState.pinnedIndex !== null) return;
     monthlyChartState.hoverIndex = -1;
     hideMonthlyChartTooltip();
-    renderMonthlyCashflowChart(userBookings(), monthlyChartState.year || new Date().getFullYear());
+    renderMonthlyCashflowChart(dashboardEntriesForSelectedAccount(), monthlyChartState.year || new Date().getFullYear());
   });
 
   canvas.addEventListener("click", evt => {
@@ -2151,7 +2217,7 @@ function setupMonthlyChartInteractions() {
       monthlyChartState.pinnedIndex = null;
       monthlyChartState.hoverIndex = -1;
       hideMonthlyChartTooltip();
-      renderMonthlyCashflowChart(userBookings(), monthlyChartState.year || new Date().getFullYear());
+      renderMonthlyCashflowChart(dashboardEntriesForSelectedAccount(), monthlyChartState.year || new Date().getFullYear());
       return;
     }
 
@@ -2165,7 +2231,7 @@ function setupMonthlyChartInteractions() {
       updateMonthlyChartTooltip(idx, evt);
     }
 
-    renderMonthlyCashflowChart(userBookings(), monthlyChartState.year || new Date().getFullYear());
+    renderMonthlyCashflowChart(dashboardEntriesForSelectedAccount(), monthlyChartState.year || new Date().getFullYear());
   });
 }
 

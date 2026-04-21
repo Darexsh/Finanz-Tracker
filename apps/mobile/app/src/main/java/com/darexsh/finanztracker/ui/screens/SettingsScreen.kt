@@ -28,12 +28,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,7 +50,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -67,6 +63,7 @@ import com.darexsh.finanztracker.model.FontSizeMode
 import com.darexsh.finanztracker.model.LanguagePreference
 import com.darexsh.finanztracker.model.NavigationAnimationStyle
 import com.darexsh.finanztracker.model.TrackerState
+import com.darexsh.finanztracker.ui.components.SelectionBottomSheetButton
 
 @Composable
 fun SettingsScreen(
@@ -622,56 +619,23 @@ private fun <T> CompactSelectField(
     options: List<Pair<String, T>>,
     onSelected: (T) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
         )
-        Box {
-            OutlinedButton(
-                onClick = { expanded = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(34.dp),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
-            ) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = selectedLabel,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.Center)
-                    )
-                    Icon(
-                        imageVector = Icons.Outlined.KeyboardArrowDown,
-                        contentDescription = label,
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    )
-                }
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                options.forEach { (text, value) ->
-                    DropdownMenuItem(
-                        text = { Text(text) },
-                        onClick = {
-                            onSelected(value)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
+        SelectionBottomSheetButton(
+            title = label,
+            selectedLabel = selectedLabel,
+            options = options,
+            onSelected = onSelected,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(34.dp),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+            isSelected = { option -> options.any { it.first == selectedLabel && it.second == option } }
+        )
     }
 }
 

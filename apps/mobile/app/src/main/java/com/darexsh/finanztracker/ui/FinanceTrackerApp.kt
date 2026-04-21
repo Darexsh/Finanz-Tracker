@@ -50,9 +50,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
@@ -79,14 +76,12 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.window.Dialog
 import androidx.core.os.LocaleListCompat
 import androidx.core.content.ContextCompat
@@ -105,6 +100,7 @@ import com.darexsh.finanztracker.ui.screens.DashboardScreen
 import com.darexsh.finanztracker.ui.screens.ReportsScreen
 import com.darexsh.finanztracker.ui.screens.SettingsScreen
 import com.darexsh.finanztracker.ui.screens.SyncScreen
+import com.darexsh.finanztracker.ui.components.SelectionBottomSheetField
 import kotlinx.coroutines.delay
 
 private data class TabItem(val label: String, val icon: ImageVector)
@@ -523,24 +519,22 @@ private fun UserHeaderBar(
     onDeleteActiveUser: () -> Boolean
 ) {
     val context = LocalContext.current
-    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     val activeUser = state.users.firstOrNull { it.id == state.activeUserId } ?: state.users.firstOrNull()
     val appIconBitmap = remember {
         runCatching {
             context.packageManager.getApplicationIcon(context.packageName)
         }.getOrNull()?.let { drawableToBitmap(it).asImageBitmap() }
     }
-    var userMenuExpanded by remember { mutableStateOf(false) }
     var profileExpanded by remember { mutableStateOf(true) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var nameInput by remember { mutableStateOf("") }
 
-    LaunchedEffect(profileExpanded, userMenuExpanded, showAddDialog, showRenameDialog, showDeleteDialog) {
-        if (profileExpanded && !userMenuExpanded && !showAddDialog && !showRenameDialog && !showDeleteDialog) {
+    LaunchedEffect(profileExpanded, showAddDialog, showRenameDialog, showDeleteDialog) {
+        if (profileExpanded && !showAddDialog && !showRenameDialog && !showDeleteDialog) {
             delay(3500)
-            if (!userMenuExpanded && !showAddDialog && !showRenameDialog && !showDeleteDialog) {
+            if (!showAddDialog && !showRenameDialog && !showDeleteDialog) {
                 profileExpanded = false
             }
         }
@@ -652,49 +646,14 @@ private fun UserHeaderBar(
                 modifier = Modifier.padding(top = 8.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = activeUser?.name.orEmpty(),
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text(stringResource(R.string.profile_label)) },
-                            singleLine = true,
-                            trailingIcon = {
-                                IconButton(onClick = {
-                                    userMenuExpanded = !userMenuExpanded
-                                    if (!userMenuExpanded) focusManager.clearFocus(force = true)
-                                }) {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = userMenuExpanded)
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { userMenuExpanded = true }
-                                .onFocusChanged { focusState ->
-                                    if (focusState.isFocused) userMenuExpanded = true
-                                }
-                        )
-                        DropdownMenu(
-                            expanded = userMenuExpanded,
-                            onDismissRequest = {
-                                userMenuExpanded = false
-                                focusManager.clearFocus(force = true)
-                            },
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            properties = PopupProperties(focusable = false)
-                        ) {
-                            state.users.forEach { user ->
-                                DropdownMenuItem(
-                                    text = { Text(user.name) },
-                                    onClick = {
-                                        onSetActiveUser(user.id)
-                                        userMenuExpanded = false
-                                        focusManager.clearFocus(force = true)
-                                    }
-                                )
-                            }
-                        }
-                    }
+                    SelectionBottomSheetField(
+                        label = stringResource(R.string.profile_label),
+                        selectedLabel = activeUser?.name.orEmpty(),
+                        options = state.users.map { it.name to it.id },
+                        onSelected = { userId -> onSetActiveUser(userId) },
+                        modifier = Modifier.fillMaxWidth(),
+                        isSelected = { userId -> userId == state.activeUserId }
+                    )
 
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),

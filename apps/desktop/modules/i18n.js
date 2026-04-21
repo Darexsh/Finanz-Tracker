@@ -68,6 +68,7 @@ export const I18N = {
     dateLabel: "Datum (TT.MM.JJJJ)",
     monthAll: "Monat: Alle",
     yearAll: "Jahr: Alle",
+    all: "Alle",
     categoryAll: "Kategorie: Alle",
     accountAll: "Konto: Alle",
     dateInvalid: "Bitte Datum im ausgewählten Datumsformat eingeben.",
@@ -198,6 +199,7 @@ export const I18N = {
     dateLabel: "Date (MM/DD/YYYY)",
     monthAll: "Month: All",
     yearAll: "Year: All",
+    all: "All",
     categoryAll: "Category: All",
     accountAll: "Account: All",
     dateInvalid: "Please enter a date in the selected date format.",
@@ -270,4 +272,3 @@ export const I18N = {
     lastSyncRestore: "Last restore: {value}"
   }
 };
-

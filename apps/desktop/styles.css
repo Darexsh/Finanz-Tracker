@@ -115,6 +115,29 @@ body {
   gap: 10px;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
+
+.dashboard-inline-filter {
+  margin-top: 0;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.dashboard-inline-filter label {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 700;
+}
+
+.dashboard-inline-filter select {
+  width: min(240px, 100%);
+  padding: 8px 10px;
+  min-height: 40px;
+}
 .card {
   background: white;
   border: 1px solid var(--border);

@@ -10,10 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -24,9 +21,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,15 +42,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.PopupProperties
 import com.darexsh.finanztracker.R
 import com.darexsh.finanztracker.domain.BookingDraft
 import com.darexsh.finanztracker.domain.CategoryMutationStatus
@@ -69,6 +60,7 @@ import com.darexsh.finanztracker.model.TxType
 import com.darexsh.finanztracker.ui.canonicalDateToDisplay
 import com.darexsh.finanztracker.ui.displayDateToCanonical
 import com.darexsh.finanztracker.ui.FinanceLabelLocalizer
+import com.darexsh.finanztracker.ui.components.SelectionBottomSheetField
 import com.darexsh.finanztracker.ui.formatCurrencyValue
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -419,18 +411,16 @@ fun BookingsScreen(
                                     categoryManuallyOverridden = true
                                 }
                             },
-                            label = { Text(stringResource(R.string.label_category)) },
+                            label = stringResource(R.string.label_category),
                             options = categoryOptions,
-                            readOnly = true,
                             displayValue = localizeCategoryLabel,
                             modifier = Modifier.weight(1f)
                         )
                         SelectableField(
                             value = account,
                             onValueChange = { account = it.trim() },
-                            label = { Text(stringResource(R.string.label_account)) },
+                            label = stringResource(R.string.label_account),
                             options = accountOptions,
-                            readOnly = true,
                             displayValue = localizeAccountLabel,
                             modifier = Modifier.weight(1f)
                         )
@@ -676,9 +666,8 @@ fun BookingsScreen(
                             onValueChange = { value ->
                                 filterMonth = if (value == allMonthsLabel) "" else value
                             },
-                            label = { Text(stringResource(R.string.filter_month)) },
+                            label = stringResource(R.string.filter_month),
                             options = listOf(allMonthsLabel) + monthFilterOptions,
-                            readOnly = true,
                             modifier = Modifier.weight(1f)
                         )
                         SelectableField(
@@ -686,10 +675,8 @@ fun BookingsScreen(
                             onValueChange = { value ->
                                 filterYear = if (value == allYearsLabel) "" else value
                             },
-                            label = { Text(stringResource(R.string.filter_year)) },
+                            label = stringResource(R.string.filter_year),
                             options = listOf(allYearsLabel) + yearFilterOptions,
-                            readOnly = true,
-                            preferAbove = true,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -699,9 +686,8 @@ fun BookingsScreen(
                             onValueChange = { value ->
                                 filterCategory = if (value == allCategoriesLabel) "" else value
                             },
-                            label = { Text(stringResource(R.string.filter_category)) },
+                            label = stringResource(R.string.filter_category),
                             options = listOf(allCategoriesLabel) + categoryOptions,
-                            readOnly = true,
                             displayValue = localizeCategoryLabel,
                             modifier = Modifier.weight(1f)
                         )
@@ -710,9 +696,8 @@ fun BookingsScreen(
                             onValueChange = { value ->
                                 filterAccount = if (value == allAccountsLabel) "" else value
                             },
-                            label = { Text(stringResource(R.string.filter_account)) },
+                            label = stringResource(R.string.filter_account),
                             options = listOf(allAccountsLabel) + accountOptions,
-                            readOnly = true,
                             displayValue = localizeAccountLabel,
                             modifier = Modifier.weight(1f)
                         )
@@ -976,86 +961,28 @@ private fun bookingDateSortKey(date: String): Int {
 private fun formatAmountForInput(value: Double): String =
     String.format(Locale.GERMANY, "%.2f", value)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SelectableField(
     value: String,
     onValueChange: (String) -> Unit,
-    label: @Composable () -> Unit,
+    label: String,
     options: List<String>,
-    readOnly: Boolean,
     displayValue: (String) -> String = { it },
-    preferAbove: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val focusManager = LocalFocusManager.current
-    var expanded by remember { mutableStateOf(false) }
-    val shownOptions = if (readOnly) {
-        options
-    } else {
-        val query = value.trim().lowercase()
-        val hasExactOption = options.any { it.equals(value.trim(), ignoreCase = true) }
-        if (query.isBlank() || hasExactOption) {
-            options
-        } else {
-            options.filter { it.lowercase().contains(query) }
-        }
+    val normalizedOptions = remember(options, displayValue) {
+        options.map { displayValue(it) to it }
     }
-    Column(modifier = modifier) {
-        OutlinedTextField(
-            value = displayValue(value),
-            onValueChange = {
-                if (!readOnly) {
-                    onValueChange(it)
-                    expanded = true
-                }
-            },
-            label = label,
-            readOnly = readOnly,
-            singleLine = true,
-            trailingIcon = {
-                IconButton(onClick = {
-                    expanded = !expanded
-                    if (!expanded) focusManager.clearFocus(force = true)
-                }) {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = true }
-                .onFocusChanged { focusState ->
-                    if (focusState.isFocused) expanded = true
-                }
-        )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = {
-                expanded = false
-                focusManager.clearFocus(force = true)
-            },
-            offset = DpOffset(0.dp, if (preferAbove) (-240).dp else 0.dp),
-            containerColor = MaterialTheme.colorScheme.surface,
-            properties = PopupProperties(focusable = false)
-        ) {
-            Column(
-                modifier = Modifier
-                    .heightIn(max = 320.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                shownOptions.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(displayValue(option)) },
-                        onClick = {
-                            onValueChange(option)
-                            expanded = false
-                            focusManager.clearFocus(force = true)
-                        }
-                    )
-                }
-            }
-        }
-    }
+
+    SelectionBottomSheetField(
+        label = label,
+        selectedLabel = displayValue(value),
+        options = normalizedOptions,
+        onSelected = onValueChange,
+        modifier = modifier,
+        enabled = true,
+        isSelected = { it.equals(value, ignoreCase = true) }
+    )
 }
 
 @Composable

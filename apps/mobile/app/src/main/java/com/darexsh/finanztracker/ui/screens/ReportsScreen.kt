@@ -9,7 +9,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,20 +18,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,17 +35,13 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.PopupProperties
 import com.darexsh.finanztracker.R
 import com.darexsh.finanztracker.domain.export.XlsxBuilder
 import com.darexsh.finanztracker.domain.export.XlsxSheet
@@ -65,6 +50,8 @@ import com.darexsh.finanztracker.model.CurrencyPreference
 import com.darexsh.finanztracker.model.ExportFormatPreference
 import com.darexsh.finanztracker.model.TrackerState
 import com.darexsh.finanztracker.model.TxType
+import com.darexsh.finanztracker.ui.components.SelectionBottomSheetButton
+import com.darexsh.finanztracker.ui.components.SelectionBottomSheetField
 import com.darexsh.finanztracker.ui.formatCurrencyValue
 import java.io.ByteArrayOutputStream
 import java.text.DateFormatSymbols
@@ -358,60 +345,22 @@ private fun <T> ReportFormatButton(
     onSelected: (T) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
         )
-        Box {
-            OutlinedButton(
-                onClick = { expanded = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(34.dp),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
-            ) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = selectedLabel,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.Center)
-                    )
-                    Icon(
-                        imageVector = Icons.Outlined.KeyboardArrowDown,
-                        contentDescription = label,
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    )
-                }
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                options.forEach { (text, value) ->
-                    DropdownMenuItem(
-                        text = { Text(text) },
-                        onClick = {
-                            onSelected(value)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
+        SelectionBottomSheetButton(
+            title = label,
+            selectedLabel = selectedLabel,
+            options = options,
+            onSelected = onSelected,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun <T> ReportSelectField(
     label: String,
@@ -422,61 +371,16 @@ private fun <T> ReportSelectField(
     enabled: Boolean = true,
     onDisabledClick: (() -> Unit)? = null
 ) {
-    val focusManager = LocalFocusManager.current
-    var expanded by remember { mutableStateOf(false) }
-    Column(modifier = modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = selectedLabel,
-            onValueChange = {},
-            readOnly = true,
-            enabled = enabled,
-            label = { Text(label) },
-            trailingIcon = {
-                IconButton(
-                    enabled = enabled,
-                    onClick = {
-                        if (enabled) {
-                            expanded = !expanded
-                            if (!expanded) focusManager.clearFocus(force = true)
-                        } else {
-                            onDisabledClick?.invoke()
-                        }
-                    }
-                ) {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                }
-            },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .alpha(if (enabled) 1f else 0.6f)
-                .clickable(enabled = !enabled) { onDisabledClick?.invoke() }
-                .clickable(enabled = enabled) { expanded = true }
-                .onFocusChanged { focusState ->
-                    if (focusState.isFocused && enabled) expanded = true
-                }
-        )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = {
-                expanded = false
-                focusManager.clearFocus(force = true)
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-            properties = PopupProperties(focusable = false)
-        ) {
-            options.forEach { (text, value) ->
-                DropdownMenuItem(
-                    text = { Text(text) },
-                    onClick = {
-                        onSelected(value)
-                        expanded = false
-                        focusManager.clearFocus(force = true)
-                    }
-                )
-            }
-        }
-    }
+    SelectionBottomSheetField(
+        label = label,
+        selectedLabel = selectedLabel,
+        options = options,
+        onSelected = onSelected,
+        modifier = modifier.fillMaxWidth(),
+        enabled = enabled,
+        onDisabledClick = onDisabledClick,
+        isSelected = { option -> options.any { it.first == selectedLabel && it.second == option } }
+    )
 }
 
 @Composable
