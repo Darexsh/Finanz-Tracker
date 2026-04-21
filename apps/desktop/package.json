@@ -8,7 +8,7 @@
     "prepare:dist": "node scripts/prepare-dist.mjs",
     "test:regression": "node --test tests/regression.test.mjs",
     "tauri:dev": "npm run prepare:dist && tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build && node scripts/rename-artifacts.mjs"
   },
   "keywords": [],
   "author": "",
