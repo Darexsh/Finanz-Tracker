@@ -34,3 +34,6 @@ Desktop application built with Tauri.
 - Place a square source PNG in `src-tauri/` and run:
 - `npx @tauri-apps/cli icon ./your-square-icon.png`
 - Rebuild the desktop app after icon generation.
+## Privacy
+- Privacy Policy: [PRIVACY_POLICY.md](PRIVACY_POLICY.md)
+

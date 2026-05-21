@@ -53,3 +53,6 @@ cd "apps/mobile"
 
 ## Notes
 - For two-way sync tools (for example FolderSync), enable the setting to sync deleted files as well; otherwise deleted files can come back after sync.
+
+## Privacy
+- Privacy Policy: [PRIVACY_POLICY.md](PRIVACY_POLICY.md)

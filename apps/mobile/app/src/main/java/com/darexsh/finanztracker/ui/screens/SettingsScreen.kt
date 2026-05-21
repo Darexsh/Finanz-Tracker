@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -35,6 +37,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -336,10 +340,12 @@ fun SettingsScreen(
     if (showAboutDialog) {
         AlertDialog(
             onDismissRequest = { showAboutDialog = false },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
             title = { Text(stringResource(R.string.app_info_title)) },
             text = {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.verticalScroll(rememberScrollState())
                 ) {
                     Row(
@@ -366,37 +372,78 @@ fun SettingsScreen(
                     )
                     Text(
                         text = stringResource(R.string.app_info_description),
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium.copy(lineHeight = MaterialTheme.typography.bodyLarge.lineHeight)
                     )
                     Text(
                         text = stringResource(R.string.app_info_developer),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text(
-                        text = stringResource(R.string.app_info_actions_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(top = 4.dp)
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
                     )
-                    Button(
-                        onClick = { openEmail(context, "sichler.daniel@gmail.com") },
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.gmail_icon),
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(stringResource(R.string.app_info_open_email))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(
+                                onClick = { openEmail(context, "sichler.daniel@gmail.com") },
+                                contentPadding = PaddingValues(0.dp),
+                                shape = CircleShape,
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.gmail_icon),
+                                    contentDescription = stringResource(R.string.app_info_open_email),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = { openUri(context, "https://linktr.ee/darexsh") },
+                                contentPadding = PaddingValues(0.dp),
+                                shape = CircleShape,
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.linktree_icon),
+                                    contentDescription = stringResource(R.string.app_info_open_github),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = { openUri(context, "https://t.me/darexsh_bot") },
+                                contentPadding = PaddingValues(0.dp),
+                                shape = CircleShape,
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.telegram_icon),
+                                    contentDescription = stringResource(R.string.app_info_open_telegram_bot),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = { openUri(context, "https://github.com/Darexsh") },
+                                contentPadding = PaddingValues(0.dp),
+                                shape = CircleShape,
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.github_icon),
+                                    contentDescription = stringResource(R.string.app_info_open_github_profile),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
-                    Button(
-                        onClick = { openUri(context, "https://linktr.ee/darexsh") },
+                    OutlinedButton(
+                        onClick = { openUri(context, "https://github.com/Darexsh/Finanz-Tracker/blob/main/apps/mobile/PRIVACY_POLICY.md") },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -404,46 +451,12 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.linktree_icon),
+                            Icon(
+                                imageVector = Icons.Outlined.Info,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Text(stringResource(R.string.app_info_open_github))
-                        }
-                    }
-                    Button(
-                        onClick = { openUri(context, "https://t.me/darexsh_bot") },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.telegram_icon),
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(stringResource(R.string.app_info_open_telegram_bot))
-                        }
-                    }
-                    Button(
-                        onClick = { openUri(context, "https://github.com/Darexsh") },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.github_icon),
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(stringResource(R.string.app_info_open_github_profile))
+                            Text(stringResource(R.string.app_info_open_privacy))
                         }
                     }
                     Button(

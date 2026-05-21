@@ -24,7 +24,8 @@
     <string name="app_info_open_github">Soziale Medien öffnen</string>
     <string name="app_info_open_telegram_bot">Telegram-Bot öffnen</string>
     <string name="app_info_open_github_profile">GitHub-Profil</string>
-    <string name="app_info_open_coffee">Kaffee spendieren</string>
+    <string name="app_info_open_privacy">Datenschutz</string>
+    <string name="app_info_open_coffee">Entwicklung unterstützen</string>
     <string name="settings_general_title">Allgemein</string>
     <string name="settings_keep_date_title">Datum nach Speichern behalten</string>
     <string name="settings_keep_date_desc">Wenn aktiv, bleibt das zuletzt verwendete Datum im Buchungsformular.</string>

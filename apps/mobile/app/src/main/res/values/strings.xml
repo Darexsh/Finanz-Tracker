@@ -24,7 +24,8 @@
     <string name="app_info_open_github">Open social media</string>
     <string name="app_info_open_telegram_bot">Open Telegram bot</string>
     <string name="app_info_open_github_profile">GitHub profile</string>
-    <string name="app_info_open_coffee">Buy me a coffee</string>
+    <string name="app_info_open_privacy">Privacy Policy</string>
+    <string name="app_info_open_coffee">Support Development</string>
     <string name="settings_general_title">General</string>
     <string name="settings_keep_date_title">Keep date after save</string>
     <string name="settings_keep_date_desc">If enabled, the booking form keeps the last used date after saving.</string>

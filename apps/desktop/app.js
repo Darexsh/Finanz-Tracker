@@ -158,6 +158,7 @@ const el = {
   infoGithubBtn: document.getElementById("infoGithubBtn"),
   infoTelegramBtn: document.getElementById("infoTelegramBtn"),
   infoProfileBtn: document.getElementById("infoProfileBtn"),
+  infoPrivacyBtn: document.getElementById("infoPrivacyBtn"),
   infoCoffeeBtn: document.getElementById("infoCoffeeBtn"),
 
   dialogOverlay: document.getElementById("dialogOverlay"),
@@ -403,6 +404,7 @@ function applyLanguageToUi() {
   setInfoActionLabel("infoGithubBtn", "appInfoOpenGithub");
   setInfoActionLabel("infoTelegramBtn", "appInfoOpenTelegram");
   setInfoActionLabel("infoProfileBtn", "appInfoOpenProfile");
+  setInfoActionLabel("infoPrivacyBtn", "appInfoOpenPrivacy");
   setInfoActionLabel("infoCoffeeBtn", "appInfoOpenCoffee");
 
   const monthLabelNode = document.getElementById("monthInputLabel");
@@ -1727,6 +1729,7 @@ function bindEvents() {
   el.infoGithubBtn?.addEventListener("click", () => { openExternal("https://linktr.ee/darexsh"); });
   el.infoTelegramBtn?.addEventListener("click", () => { openExternal("https://t.me/darexsh_bot"); });
   el.infoProfileBtn?.addEventListener("click", () => { openExternal("https://github.com/Darexsh?tab=repositories"); });
+  el.infoPrivacyBtn?.addEventListener("click", () => { openExternal("https://github.com/Darexsh/Finanz-Tracker/blob/main/apps/desktop/PRIVACY_POLICY.md"); });
   el.infoCoffeeBtn?.addEventListener("click", () => { openExternal("https://buymeacoffee.com/darexsh"); });
 
   setupMonthlyChartInteractions();

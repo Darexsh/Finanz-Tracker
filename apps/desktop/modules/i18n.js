@@ -135,7 +135,8 @@ export const I18N = {
     appInfoOpenGithub: "Soziale Medien öffnen",
     appInfoOpenTelegram: "Telegram-Bot öffnen",
     appInfoOpenProfile: "GitHub-Profil",
-    appInfoOpenCoffee: "Kaffee spendieren",
+    appInfoOpenPrivacy: "Datenschutz",
+    appInfoOpenCoffee: "Entwicklung unterstützen",
     statusNotConfigured: "Sync: nicht konfiguriert",
     lastSyncBackup: "Letzte Sync-Sicherung: {value}",
     lastSyncRestore: "Letzte Wiederherstellung: {value}"
@@ -266,7 +267,8 @@ export const I18N = {
     appInfoOpenGithub: "Open social media",
     appInfoOpenTelegram: "Open Telegram bot",
     appInfoOpenProfile: "GitHub profile",
-    appInfoOpenCoffee: "Buy me a coffee",
+    appInfoOpenPrivacy: "Privacy Policy",
+    appInfoOpenCoffee: "Support Development",
     statusNotConfigured: "Sync: not configured",
     lastSyncBackup: "Last sync backup: {value}",
     lastSyncRestore: "Last restore: {value}"

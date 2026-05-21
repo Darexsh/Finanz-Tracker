@@ -232,6 +232,15 @@ Typical setup:
 
 * * *
 
+🔒 Privacy
+----------
+
+* Root policy (overview): [PRIVACY_POLICY.md](PRIVACY_POLICY.md)
+* Mobile policy: [apps/mobile/PRIVACY_POLICY.md](apps/mobile/PRIVACY_POLICY.md)
+* Desktop policy: [apps/desktop/PRIVACY_POLICY.md](apps/desktop/PRIVACY_POLICY.md)
+
+* * *
+
 📜 License
 ----------
 
