@@ -8,11 +8,7 @@
 **Cross-platform finance tracking app for Desktop (Tauri) and Android**  
 ⚡📊🧾💾🔄
 
-<<<<<<< HEAD
 ![Status](https://img.shields.io/badge/Status-Final-brightgreen) [![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-blue)](LICENSE) ![Version](https://img.shields.io/badge/Version-1.0-orange)
-=======
-![Status](https://img.shields.io/badge/Status-Final-brightgreen) ![License](https://img.shields.io/badge/License-GPLv3-blue) ![Version](https://img.shields.io/badge/Version-1.0-orange)
->>>>>>> 8ed1eb99574a6422e4fb7fba140b1d64fb2456e8
 
 ![Platform](https://img.shields.io/badge/Platform-Desktop_(Tauri)%20%2B%20Android-blue) ![Storage](https://img.shields.io/badge/Storage-SQLite%20%2B%20JSON-orange)
 
@@ -248,29 +244,17 @@ Typical setup:
 📜 License
 ----------
 
-<<<<<<< HEAD
 This project is licensed under the **PolyForm Noncommercial License 1.0.0**.
-=======
-This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
->>>>>>> 8ed1eb99574a6422e4fb7fba140b1d64fb2456e8
 
 This license applies to the updater application code in this repository. Upstream patch and app projects remain under their own licenses and notice terms.
 
 **Copyright (c) 2026 Darexsh by Daniel Sichler**
 
-<<<<<<< HEAD
 You are free to use, study, modify, and redistribute this software under the terms of PolyForm Noncommercial License 1.0.0.
 
 Please include the following notice when redistributing this project:
 
 > **Developer:** Darexsh by Daniel Sichler. Licensed under PolyForm Noncommercial License 1.0.0. See `LICENSE` for details.
-=======
-You are free to use, study, modify, and redistribute this software under the terms of GPL-3.0.
-
-Please include the following notice when redistributing this project:
-
-> Developed by Daniel Sichler aka Darexsh. Licensed under GNU GPL v3.0. See `LICENSE` for details.
->>>>>>> 8ed1eb99574a6422e4fb7fba140b1d64fb2456e8
 
 The full license is available in the [LICENSE](LICENSE) file.
 
