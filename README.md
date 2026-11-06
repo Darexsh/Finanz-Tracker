@@ -8,7 +8,7 @@
 **Cross-platform finance tracking app for Desktop (Tauri) and Android**  
 ⚡📊🧾💾🔄
 
-![Status](https://img.shields.io/badge/Status-Final-brightgreen) ![License](https://img.shields.io/badge/License-NonCommercial-blue) ![Version](https://img.shields.io/badge/Version-1.0-orange)
+![Status](https://img.shields.io/badge/Status-Final-brightgreen) ![License](https://img.shields.io/badge/License-GPLv3-blue) ![Version](https://img.shields.io/badge/Version-1.0-orange)
 
 ![Platform](https://img.shields.io/badge/Platform-Desktop_(Tauri)%20%2B%20Android-blue) ![Storage](https://img.shields.io/badge/Storage-SQLite%20%2B%20JSON-orange)
 
@@ -244,13 +244,17 @@ Typical setup:
 📜 License
 ----------
 
-This project is licensed under the **Non-Commercial Software License (MIT-style) v1.0** and was developed as a personal/educational project. You are free to use, modify, and distribute the code for **non-commercial purposes only**, and must credit the author:
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
+
+This license applies to the updater application code in this repository. Upstream patch and app projects remain under their own licenses and notice terms.
 
 **Copyright (c) 2026 Darexsh by Daniel Sichler**
 
-Please include the following notice with any use or distribution:
+You are free to use, study, modify, and redistribute this software under the terms of GPL-3.0.
 
-> Developed by Daniel Sichler aka Darexsh. Licensed under the Non-Commercial Software License (MIT-style) v1.0. See `LICENSE` for details.
+Please include the following notice when redistributing this project:
+
+> Developed by Daniel Sichler aka Darexsh. Licensed under GNU GPL v3.0. See `LICENSE` for details.
 
 The full license is available in the [LICENSE](LICENSE) file.
 
